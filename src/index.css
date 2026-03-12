@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --color-gs-bg: var(--theme-bg);
+  --color-gs-card: var(--theme-card);
+  --color-gs-border: var(--theme-border);
+  --color-gs-text-main: var(--theme-text-main);
+  --color-gs-text-muted: var(--theme-text-muted);
+
+  --color-gs-cyan: #00d4ff;
+  --color-gs-violet: #7c3aed;
+  --color-gs-green: #10b981;
+  --color-gs-amber: #f59e0b;
+  --color-gs-red: #ef4444;
+
+  @keyframes slideInUp {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* ── Dark Theme (default) ─────────────────────────────────────────── */
+html,
+html.theme-dark {
+  color-scheme: dark;
+  --theme-bg:         #0a0e1a;
+  --theme-card:       #111827;
+  --theme-border:     #1e2d45;
+  --theme-text-main:  #f0f4ff;
+  --theme-text-muted: #9ca3af;
+}
+
+/* ── Light Theme ──────────────────────────────────────────────────── */
+html.theme-light {
+  color-scheme: light;
+  --theme-bg:         #f1f5f9;
+  --theme-card:       #ffffff;
+  --theme-border:     #e2e8f0;
+  --theme-text-main:  #0f172a;
+  --theme-text-muted: #64748b;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────── */
+html, body {
+  background-color: var(--theme-bg);
+  color: var(--theme-text-main);
+  font-family: 'Sora', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Native form elements follow color-scheme */
+input, select, textarea, button {
+  color-scheme: inherit;
+}
+
+/* Smooth theme transitions on all elements */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.25s;
+  transition-timing-function: ease;
+}
+/* Exclude transitions that would break animations */
+*:where([class*="animate-"]) {
+  transition: none;
+}
+
+/* ── Custom Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: var(--theme-bg); }
+::-webkit-scrollbar-thumb  { background: var(--theme-border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #00d4ff; }
+
+/* ── Utilities ────────────────────────────────────────────────────── */
+@layer utilities {
+  .text-glow-cyan {
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  }
+}

@@ -1,0 +1,694 @@
+import React, { useState } from 'react';
+import {
+  Zap, Mail, Lock, Eye, EyeOff, User, ArrowRight, ArrowLeft,
+  Phone, Calendar, GraduationCap, BookOpen, Star, Globe,
+  Linkedin, Github, Instagram, Twitter, Bell, Shield, Check,
+  ChevronDown, ChevronUp, Plus, X
+} from 'lucide-react';
+import insforge from '../lib/insforge';
+
+const COLLEGES = [
+  'IIT Bombay', 'IIT Delhi', 'IIT Madras', 'IIT Kanpur', 'IIT Kharagpur',
+  'NIT Trichy', 'NIT Warangal', 'NIT Surathkal', 'BITS Pilani', 'BITS Goa',
+  'VIT Vellore', 'Manipal Institute of Technology', 'SRM Institute',
+  'Anna University', 'Delhi University', 'Mumbai University',
+  'Pune University', 'IIIT Hyderabad', 'IIIT Bangalore', 'Other'
+];
+
+const COURSES = ['B.Tech', 'B.E.', 'B.Sc', 'B.Com', 'BCA', 'B.Des', 'MBA', 'M.Tech', 'M.Sc', 'MCA', 'PhD', 'Integrated M.Tech'];
+
+const BRANCHES = [
+  'Computer Science Engineering', 'Information Technology', 'Electronics & Communication',
+  'Electrical Engineering', 'Mechanical Engineering', 'Civil Engineering',
+  'Chemical Engineering', 'Biotechnology', 'Data Science', 'AI & ML',
+  'Cyber Security', 'Aerospace Engineering', 'Design', 'Business Administration', 'Other'
+];
+
+const EVENT_INTERESTS = [
+  '🚀 Hackathons', '🎨 Design Sprints', '🤖 AI/ML Events', '🏆 Competitions',
+  '🌐 Web3 Events', '🎮 Game Jams', '🎤 Tech Talks', '📚 Workshops',
+  '🌟 Bootcamps', '🤝 Networking', '📊 Case Studies', '🔬 Research Symposiums'
+];
+
+const SKILL_SUGGESTIONS = [
+  'React', 'Vue.js', 'Angular', 'Next.js', 'Python', 'JavaScript', 'TypeScript',
+  'Node.js', 'Java', 'C++', 'Rust', 'Go', 'Kotlin', 'Swift',
+  'Machine Learning', 'Deep Learning', 'NLP', 'Computer Vision',
+  'Figma', 'UI/UX', 'Graphic Design', 'Motion Design',
+  'AWS', 'GCP', 'Azure', 'Docker', 'Kubernetes',
+  'SQL', 'MongoDB', 'PostgreSQL', 'GraphQL',
+  'Blockchain', 'Solidity', 'Web3', 'Game Dev', 'Unity',
+  'Data Science', 'Data Analysis', 'Power BI', 'Tableau'
+];
+
+const GENDERS = ['Male', 'Female'];
+
+const getPasswordStrength = (password) => {
+  if (!password) return { score: 0, label: '', color: '' };
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+  const map = [
+    { label: 'Too short', color: 'bg-red-500' },
+    { label: 'Weak', color: 'bg-red-400' },
+    { label: 'Fair', color: 'bg-amber-400' },
+    { label: 'Strong', color: 'bg-emerald-400' },
+    { label: 'Very Strong', color: 'bg-emerald-500' },
+  ];
+  return { score, ...map[score] };
+};
+
+// ─── Step 1: Account Creation ────────────────────────────────────────────────
+function Step1({ data, onChange, onNext }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const strength = getPasswordStrength(data.password);
+  const passwordsMatch = data.password && data.confirmPassword && data.password === data.confirmPassword;
+  const isValid = data.email && data.password.length >= 8 && passwordsMatch;
+  const [error, setError] = useState('');
+
+  const handleGoogleSignup = async () => {
+    try {
+      const { data, error: authError } = await insforge.auth.signInWithOAuth({
+        provider: 'google',
+        redirectTo: window.location.origin
+      });
+      if (authError) {
+        setError(authError.message);
+      }
+    } catch (err) {
+      setError('An unexpected error occurred during Google sign-up.');
+    }
+  };
+
+  return (
+    <div className="space-y-5 animate-[slideIn_0.3s_ease-out]">
+      <div>
+        <h2 className="text-3xl font-bold text-[var(--color-gs-text-main)]">Create Account</h2>
+        <p className="text-[var(--color-gs-text-muted)] mt-1">Start your GroupSync journey.</p>
+      </div>
+
+      {error && (
+        <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm text-center">
+          {error}
+        </div>
+      )}
+
+      {/* Email */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">College Email</label>
+        <div className="relative">
+          <Mail size={18} className="absolute left-3 top-3.5 text-[var(--color-gs-text-muted)]" />
+          <input
+            type="email" value={data.email}
+            onChange={e => onChange('email', e.target.value)}
+            className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl pl-10 pr-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]"
+            placeholder="you@college.edu"
+          />
+        </div>
+        {data.email && !data.email.includes('.edu') && (
+          <p className="text-xs text-[var(--color-gs-amber)] mt-1 flex items-center gap-1">
+            <Star size={11} /> College email (.edu) recommended for verification
+          </p>
+        )}
+      </div>
+
+      {/* Password */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Password</label>
+        <div className="relative">
+          <Lock size={18} className="absolute left-3 top-3.5 text-[var(--color-gs-text-muted)]" />
+          <input
+            type={showPassword ? 'text' : 'password'} value={data.password}
+            onChange={e => onChange('password', e.target.value)}
+            className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl pl-10 pr-12 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]"
+            placeholder="••••••••"
+          />
+          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-text-main)]">
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+        {data.password && (
+          <div className="mt-2 space-y-1">
+            <div className="flex gap-1">
+              {[0,1,2,3].map(i => (
+                <div key={i} className={"h-1 flex-1 rounded-full transition-all duration-300 " + (i < strength.score ? strength.color : 'bg-[var(--color-gs-border)]')} />
+              ))}
+            </div>
+            <p className={"text-xs font-medium " + (strength.score >= 3 ? 'text-emerald-400' : strength.score >= 2 ? 'text-amber-400' : 'text-red-400')}>
+              {strength.label}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Confirm Password */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Confirm Password</label>
+        <div className="relative">
+          <Lock size={18} className="absolute left-3 top-3.5 text-[var(--color-gs-text-muted)]" />
+          <input
+            type={showConfirm ? 'text' : 'password'} value={data.confirmPassword}
+            onChange={e => onChange('confirmPassword', e.target.value)}
+            className={"w-full bg-[var(--color-gs-bg)] border rounded-xl pl-10 pr-12 py-3 outline-none transition-colors text-[var(--color-gs-text-main)] " + (data.confirmPassword ? (passwordsMatch ? 'border-emerald-500' : 'border-red-500') : 'border-[var(--color-gs-border)] focus:border-[var(--color-gs-cyan)]')}
+            placeholder="••••••••"
+          />
+          <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-3.5 text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-text-main)]">
+            {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+          {data.confirmPassword && passwordsMatch && (
+            <Check size={16} className="absolute right-10 top-3.5 text-emerald-400" />
+          )}
+        </div>
+        {data.confirmPassword && !passwordsMatch && (
+          <p className="text-xs text-red-400 mt-1">Passwords don't match</p>
+        )}
+      </div>
+
+      <div className="space-y-3 pt-2">
+        <button
+          onClick={onNext} disabled={!isValid}
+          className="w-full py-3 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:shadow-[0_0_25px_rgba(0,212,255,0.5)] flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Continue <ArrowRight size={18} />
+        </button>
+
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-px bg-[var(--color-gs-border)]" />
+          <span className="text-xs text-[var(--color-gs-text-muted)]">or sign up with</span>
+          <div className="flex-1 h-px bg-[var(--color-gs-border)]" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* Google */}
+          <button type="button" onClick={handleGoogleSignup} className="flex items-center justify-center gap-2 py-3 bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl hover:border-[var(--color-gs-cyan)] transition-colors text-sm font-medium text-[var(--color-gs-text-main)]">
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Google
+          </button>
+          {/* Microsoft */}
+          <button className="flex items-center justify-center gap-2 py-3 bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl hover:border-[var(--color-gs-violet)] transition-colors text-sm font-medium text-[var(--color-gs-text-main)]">
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#F35325" d="M11.4 2H2v9.4h9.4V2z"/>
+              <path fill="#81BC06" d="M22 2h-9.4v9.4H22V2z"/>
+              <path fill="#05A6F0" d="M11.4 12.6H2V22h9.4v-9.4z"/>
+              <path fill="#FFBA08" d="M22 12.6h-9.4V22H22v-9.4z"/>
+            </svg>
+            Microsoft
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 2: Personal Information ────────────────────────────────────────────
+function Step2({ data, onChange, onNext, onBack }) {
+  const AVATARS = ['🦊', '🐉', '🤖', '🦋', '🐺', '🦅', '🐬', '🦁', '🐸', '🦄', '🐻', '🦖'];
+  const isValid = data.fullName;
+
+  return (
+    <div className="space-y-5 animate-[slideIn_0.3s_ease-out]">
+      <div>
+        <h2 className="text-3xl font-bold text-[var(--color-gs-text-main)]">Personal Info</h2>
+        <p className="text-[var(--color-gs-text-muted)] mt-1">Tell us a bit about yourself.</p>
+      </div>
+
+      {/* Avatar Picker */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Profile Avatar</label>
+        <div className="flex flex-wrap gap-2">
+          {AVATARS.map(av => (
+            <button key={av} type="button" onClick={() => onChange('avatar', av)}
+              className={"text-2xl w-11 h-11 rounded-xl border transition-all hover:scale-110 " + (data.avatar === av ? 'border-[var(--color-gs-cyan)] bg-[var(--color-gs-cyan)]/10 shadow-[0_0_10px_rgba(0,212,255,0.3)]' : 'border-[var(--color-gs-border)] bg-[var(--color-gs-bg)]')}
+            >{av}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Full Name */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Full Name <span className="text-red-400">*</span></label>
+        <div className="relative">
+          <User size={18} className="absolute left-3 top-3.5 text-[var(--color-gs-text-muted)]" />
+          <input type="text" value={data.fullName} onChange={e => onChange('fullName', e.target.value)}
+            className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl pl-10 pr-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]"
+            placeholder="Your full name" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {/* DOB */}
+        <div>
+          <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Date of Birth</label>
+          <div className="relative">
+            <Calendar size={18} className="absolute left-3 top-3.5 text-[var(--color-gs-text-muted)]" />
+            <input type="date" value={data.dob} onChange={e => onChange('dob', e.target.value)}
+              className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl pl-10 pr-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)] [color-scheme:dark]" />
+          </div>
+        </div>
+        {/* Gender */}
+        <div>
+          <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Gender</label>
+          <select value={data.gender} onChange={e => onChange('gender', e.target.value)}
+            className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]">
+            <option value="">Select...</option>
+            {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
+      </div>
+
+
+
+      <div className="flex gap-3 pt-2">
+        <button onClick={onBack} className="flex-1 py-3 border border-[var(--color-gs-border)] rounded-xl text-[var(--color-gs-text-main)] hover:bg-[var(--color-gs-bg)] transition-colors flex items-center justify-center gap-2 font-medium">
+          <ArrowLeft size={18} /> Back
+        </button>
+        <button onClick={onNext} disabled={!isValid}
+          className="flex-1 py-3 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+          Continue <ArrowRight size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 3: Academic Information ─────────────────────────────────────────────
+function Step3({ data, onChange, onNext, onBack }) {
+  const [collegeSearch, setCollegeSearch] = useState(data.college || '');
+  const [showCollegeList, setShowCollegeList] = useState(false);
+  const filteredColleges = COLLEGES.filter(c => c.toLowerCase().includes(collegeSearch.toLowerCase()));
+  const isValid = data.college && data.course && data.year;
+
+  return (
+    <div className="space-y-5 animate-[slideIn_0.3s_ease-out]">
+      <div>
+        <h2 className="text-3xl font-bold text-[var(--color-gs-text-main)]">Academic Info</h2>
+        <p className="text-[var(--color-gs-text-muted)] mt-1">Your educational background.</p>
+      </div>
+
+      {/* College Searchable Dropdown */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">College / University <span className="text-red-400">*</span></label>
+        <div className="relative">
+          <GraduationCap size={18} className="absolute left-3 top-3.5 text-[var(--color-gs-text-muted)]" />
+          <input type="text" value={collegeSearch}
+            onChange={e => { setCollegeSearch(e.target.value); setShowCollegeList(true); onChange('college', e.target.value); }}
+            onFocus={() => setShowCollegeList(true)}
+            className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl pl-10 pr-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]"
+            placeholder="Search your college..." />
+          {showCollegeList && filteredColleges.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-xl overflow-hidden shadow-2xl z-20 max-h-48 overflow-y-auto">
+              {filteredColleges.map(c => (
+                <button key={c} type="button"
+                  onClick={() => { onChange('college', c); setCollegeSearch(c); setShowCollegeList(false); }}
+                  className="w-full text-left px-4 py-3 text-sm text-[var(--color-gs-text-main)] hover:bg-[var(--color-gs-bg)] transition-colors border-b border-[var(--color-gs-border)] last:border-0">
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {/* Student ID */}
+        <div>
+          <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Student ID / Roll No.</label>
+          <input type="text" value={data.studentId} onChange={e => onChange('studentId', e.target.value)}
+            className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]"
+            placeholder="e.g. 21CS001" />
+        </div>
+        {/* Course */}
+        <div>
+          <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Degree <span className="text-red-400">*</span></label>
+          <select value={data.course} onChange={e => onChange('course', e.target.value)}
+            className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]">
+            <option value="">Select...</option>
+            {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Branch */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Branch / Department</label>
+        <select value={data.branch} onChange={e => onChange('branch', e.target.value)}
+          className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]">
+          <option value="">Select branch...</option>
+          {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        {/* Year */}
+        <div>
+          <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Year <span className="text-red-400">*</span></label>
+          <select value={data.year} onChange={e => onChange('year', e.target.value)}
+            className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]">
+            <option value="">Year</option>
+            {['1st', '2nd', '3rd', '4th', '5th', 'Grad'].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+        {/* Semester */}
+        <div>
+          <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Semester</label>
+          <select value={data.semester} onChange={e => onChange('semester', e.target.value)}
+            className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]">
+            <option value="">Sem</option>
+            {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        {/* Grad Year */}
+        <div>
+          <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Grad Year</label>
+          <select value={data.gradYear} onChange={e => onChange('gradYear', e.target.value)}
+            className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]">
+            <option value="">Year</option>
+            {[2025,2026,2027,2028,2029,2030].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* CGPA */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">
+          CGPA / Percentage <span className="text-xs text-[var(--color-gs-text-muted)] ml-1">(optional · <Lock size={10} className="inline" /> private)</span>
+        </label>
+        <input type="text" value={data.cgpa} onChange={e => onChange('cgpa', e.target.value)}
+          className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)]"
+          placeholder="e.g. 8.5 or 89%" />
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button onClick={onBack} className="flex-1 py-3 border border-[var(--color-gs-border)] rounded-xl text-[var(--color-gs-text-main)] hover:bg-[var(--color-gs-bg)] transition-colors flex items-center justify-center gap-2 font-medium">
+          <ArrowLeft size={18} /> Back
+        </button>
+        <button onClick={onNext} disabled={!isValid}
+          className="flex-1 py-3 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+          Continue <ArrowRight size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 4: Interests & Preferences ──────────────────────────────────────────
+function Step4({ data, onChange, onSubmit, onBack, isSubmitting, error }) {
+  const [skillInput, setSkillInput] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestions = SKILL_SUGGESTIONS.filter(s =>
+    s.toLowerCase().includes(skillInput.toLowerCase()) && !data.skills.includes(s)
+  ).slice(0, 8);
+
+  const addSkill = (skill) => {
+    if (skill.trim() && !data.skills.includes(skill.trim())) {
+      onChange('skills', [...data.skills, skill.trim()]);
+    }
+    setSkillInput('');
+    setShowSuggestions(false);
+  };
+
+  const removeSkill = (skill) => onChange('skills', data.skills.filter(s => s !== skill));
+
+  const toggleInterest = (interest) => {
+    if (data.interests.includes(interest)) {
+      onChange('interests', data.interests.filter(i => i !== interest));
+    } else {
+      onChange('interests', [...data.interests, interest]);
+    }
+  };
+
+  const toggleNotif = (key) => onChange('notifications', { ...data.notifications, [key]: !data.notifications[key] });
+  const togglePrivacy = (key) => onChange('privacy', { ...data.privacy, [key]: !data.privacy[key] });
+
+  const Toggle = ({ checked, onChange: onToggle }) => (
+    <button type="button" onClick={onToggle}
+      className={"relative w-12 h-6 rounded-full transition-colors duration-200 " + (checked ? 'bg-[var(--color-gs-cyan)]' : 'bg-[var(--color-gs-border)]')}>
+      <div className={"absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 " + (checked ? 'left-6' : 'left-0.5')} />
+    </button>
+  );
+
+  return (
+    <div className="space-y-5 animate-[slideIn_0.3s_ease-out]">
+      <div>
+        <h2 className="text-3xl font-bold text-[var(--color-gs-text-main)]">Interests & Preferences</h2>
+        <p className="text-[var(--color-gs-text-muted)] mt-1">Personalize your GroupSync experience.</p>
+      </div>
+
+      {error && (
+        <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm text-center">
+          {error}
+        </div>
+      )}
+
+      {/* Event Interests */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Event Interests</label>
+        <div className="flex flex-wrap gap-2">
+          {EVENT_INTERESTS.map(interest => (
+            <button key={interest} type="button" onClick={() => toggleInterest(interest)}
+              className={"px-3 py-1.5 rounded-full border text-sm transition-all " + (data.interests.includes(interest) ? 'border-[var(--color-gs-cyan)] bg-[var(--color-gs-cyan)]/10 text-[var(--color-gs-cyan)]' : 'border-[var(--color-gs-border)] text-[var(--color-gs-text-muted)] hover:border-[var(--color-gs-cyan)]/50')}>
+              {interest}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Skills Tag Input */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Skills</label>
+        <div className="bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl p-3 focus-within:border-[var(--color-gs-cyan)] transition-colors">
+          <div className="flex flex-wrap gap-2 mb-2">
+            {data.skills.map(skill => (
+              <span key={skill} className="flex items-center gap-1 px-3 py-1 bg-[var(--color-gs-violet)]/20 border border-[var(--color-gs-violet)]/40 text-[var(--color-gs-violet)] rounded-full text-sm font-medium">
+                {skill}
+                <button type="button" onClick={() => removeSkill(skill)} className="hover:text-red-400 transition-colors"><X size={12} /></button>
+              </span>
+            ))}
+          </div>
+          <div className="relative">
+            <input type="text" value={skillInput}
+              onChange={e => { setSkillInput(e.target.value); setShowSuggestions(true); }}
+              onKeyDown={e => { if (e.key === 'Enter' && skillInput.trim()) { e.preventDefault(); addSkill(skillInput); } }}
+              onFocus={() => setShowSuggestions(true)}
+              className="w-full bg-transparent outline-none text-sm text-[var(--color-gs-text-main)] placeholder-[var(--color-gs-text-muted)]"
+              placeholder="Type a skill and press Enter..." />
+            {showSuggestions && suggestions.length > 0 && skillInput && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-xl overflow-hidden shadow-2xl z-20">
+                {suggestions.map(s => (
+                  <button key={s} type="button" onMouseDown={() => addSkill(s)}
+                    className="w-full text-left px-4 py-2 text-sm text-[var(--color-gs-text-main)] hover:bg-[var(--color-gs-bg)] transition-colors flex items-center gap-2">
+                    <Plus size={14} className="text-[var(--color-gs-cyan)]" /> {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Bio */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Bio / About Me</label>
+        <textarea value={data.bio} onChange={e => onChange('bio', e.target.value)} rows={3}
+          className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)] resize-none text-sm"
+          placeholder="Tell other students about yourself..." />
+      </div>
+
+      {/* Social Links */}
+      <div>
+        <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Social Links</label>
+        <div className="space-y-2">
+          {[
+            { key: 'linkedin', icon: Linkedin, placeholder: 'linkedin.com/in/username', color: 'text-blue-400' },
+            { key: 'github', icon: Github, placeholder: 'github.com/username', color: 'text-[var(--color-gs-text-muted)]' },
+            { key: 'portfolio', icon: Globe, placeholder: 'yourportfolio.com', color: 'text-emerald-400' },
+            { key: 'instagram', icon: Instagram, placeholder: 'instagram.com/username', color: 'text-pink-400' },
+            { key: 'twitter', icon: Twitter, placeholder: 'twitter.com/username', color: 'text-sky-400' },
+          ].map(({ key, icon: Icon, placeholder, color }) => (
+            <div key={key} className="relative">
+              <Icon size={16} className={"absolute left-3 top-3.5 " + color} />
+              <input type="text" value={data.socialLinks[key] || ''} onChange={e => onChange('socialLinks', { ...data.socialLinks, [key]: e.target.value })}
+                className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl pl-10 pr-4 py-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors text-[var(--color-gs-text-main)] text-sm"
+                placeholder={placeholder} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Notification Preferences */}
+      <div className="bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-[var(--color-gs-text-main)] flex items-center gap-2"><Bell size={15} className="text-[var(--color-gs-cyan)]" /> Notifications</h3>
+        {[
+          { key: 'events', label: 'New event announcements' },
+          { key: 'teamInvites', label: 'Team invitations' },
+          { key: 'messages', label: 'Direct messages' },
+        ].map(({ key, label }) => (
+          <div key={key} className="flex items-center justify-between">
+            <span className="text-sm text-[var(--color-gs-text-muted)]">{label}</span>
+            <Toggle checked={data.notifications[key]} onChange={() => toggleNotif(key)} />
+          </div>
+        ))}
+      </div>
+
+      {/* Privacy Settings */}
+      <div className="bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-[var(--color-gs-text-main)] flex items-center gap-2"><Shield size={15} className="text-[var(--color-gs-green)]" /> Privacy</h3>
+        {[
+          { key: 'publicProfile', label: 'Public profile' },
+          { key: 'showSkills', label: 'Show skills to others' },
+          { key: 'showEmail', label: 'Show email on profile' },
+        ].map(({ key, label }) => (
+          <div key={key} className="flex items-center justify-between">
+            <span className="text-sm text-[var(--color-gs-text-muted)]">{label}</span>
+            <Toggle checked={data.privacy[key]} onChange={() => togglePrivacy(key)} />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button onClick={onBack} disabled={isSubmitting} className="flex-1 py-3 border border-[var(--color-gs-border)] rounded-xl text-[var(--color-gs-text-main)] hover:bg-[var(--color-gs-bg)] transition-colors flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+          <ArrowLeft size={18} /> Back
+        </button>
+        <button onClick={onSubmit} disabled={isSubmitting}
+          className="flex-1 py-3 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,212,255,0.4)] disabled:opacity-50 disabled:cursor-not-allowed">
+          {isSubmitting ? 'Creating...' : 'Create Account'} {!isSubmitting && <Check size={18} />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Signup Component ────────────────────────────────────────────────────
+const STEP_LABELS = ['Account', 'Personal', 'Academic', 'Preferences'];
+
+export default function Signup({ onNavigate }) {
+  const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const [formData, setFormData] = useState({
+    // Step 1
+    email: '', password: '', confirmPassword: '',
+    // Step 2
+    fullName: '', avatar: '🦊', dob: '', gender: '',
+    // Step 3
+    college: '', studentId: '', course: '', branch: '',
+    year: '', semester: '', gradYear: '', cgpa: '',
+    // Step 4
+    interests: [], skills: [], bio: '',
+    socialLinks: { linkedin: '', github: '', portfolio: '', instagram: '', twitter: '' },
+    notifications: { events: true, teamInvites: true, messages: true },
+    privacy: { publicProfile: true, showSkills: true, showEmail: false },
+  });
+
+  const update = (key, value) => setFormData(prev => ({ ...prev, [key]: value }));
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setSubmitError('');
+    try {
+      const { data: authData, error: authError } = await insforge.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        name: formData.fullName
+      });
+      
+      if (authError) throw authError;
+
+      const userId = authData?.user?.id;
+      if (userId) {
+        // Insert profile data
+        const { error: dbError } = await insforge.database
+          .from('profiles')
+          .insert([{
+            id: userId,
+            email: formData.email,
+            dob: formData.dob,
+            college: formData.college,
+            course: formData.course,
+            branch: formData.branch,
+            cgpa: formData.cgpa,
+            bio: formData.bio,
+            social_links: formData.socialLinks,
+            skills: formData.skills,
+            interests: formData.interests,
+            name: formData.fullName,
+            avatar: formData.avatar
+          }]);
+          
+        if (dbError) throw dbError;
+      }
+      
+      onNavigate('login');
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to create account. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[var(--color-gs-bg)] p-4 relative overflow-hidden">
+      {/* Background glow blobs */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[var(--color-gs-cyan)]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[var(--color-gs-violet)]/10 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="w-full max-w-lg bg-[var(--color-gs-card)]/80 backdrop-blur-xl border border-[var(--color-gs-border)] rounded-3xl p-8 z-10 shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-gs-bg)] border border-[var(--color-gs-cyan)] shadow-[0_0_15px_rgba(0,212,255,0.4)] flex items-center justify-center text-[var(--color-gs-cyan)]">
+            <Zap size={20} />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-[var(--color-gs-text-main)]">Group<span className="text-[var(--color-gs-cyan)]">Sync</span></h1>
+            <p className="text-xs text-[var(--color-gs-text-muted)]">Step {step} of 4</p>
+          </div>
+        </div>
+
+        {/* Step Progress */}
+        <div className="flex items-center justify-between w-full mb-8 relative">
+          {STEP_LABELS.map((label, i) => {
+            const num = i + 1;
+            const isActive = num === step;
+            const isDone = num < step;
+            return (
+              <React.Fragment key={num}>
+                <div className="flex flex-col items-center gap-1 z-10 w-12 shrink-0">
+                  <div className={"w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-300 bg-[var(--color-gs-bg)] " + (isDone ? 'bg-[var(--color-gs-cyan)] border-[var(--color-gs-cyan)] text-[#0f172a]' : isActive ? 'border-[var(--color-gs-cyan)] text-[var(--color-gs-cyan)] bg-[var(--color-gs-cyan)]/10' : 'border-[var(--color-gs-border)] text-[var(--color-gs-text-muted)]')}>
+                    {isDone ? <Check size={14} /> : num}
+                  </div>
+                  <span className={"text-[10px] font-medium whitespace-nowrap " + (isActive ? 'text-[var(--color-gs-cyan)]' : 'text-[var(--color-gs-text-muted)]')}>{label}</span>
+                </div>
+                {i < 3 && (
+                  <div className={"flex-1 h-0.5 mb-5 transition-all duration-500 rounded-full " + (num < step ? 'bg-[var(--color-gs-cyan)] shadow-[0_0_8px_rgba(0,212,255,0.5)]' : 'bg-[var(--color-gs-border)]')} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        {/* Step Content */}
+        {step === 1 && <Step1 data={formData} onChange={update} onNext={() => setStep(2)} />}
+        {step === 2 && <Step2 data={formData} onChange={update} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
+        {step === 3 && <Step3 data={formData} onChange={update} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
+        {step === 4 && <Step4 data={formData} onChange={update} onSubmit={handleSubmit} onBack={() => setStep(3)} isSubmitting={isSubmitting} error={submitError} />}
+
+        {/* Login link */}
+        <p className="text-center text-[var(--color-gs-text-muted)] mt-6 text-sm">
+          Already have an account?{' '}
+          <button onClick={() => onNavigate('login')} className="text-[var(--color-gs-cyan)] hover:underline font-medium">
+            Log in
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}
