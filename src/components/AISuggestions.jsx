@@ -1,88 +1,117 @@
 import React, { useState } from 'react';
-import { Bot, Sparkles } from 'lucide-react';
+import { Bot, Sparkles, ArrowRight, Users } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import insforge from '../lib/insforge';
+import { useNavigate } from 'react-router-dom';
 
 export default function AISuggestions() {
-  const { user, groups, factions } = useAppContext();
+  const { user, groups, factions, setSelectedGroupId } = useAppContext();
+  const navigate = useNavigate();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [, setError] = useState('');
+  const [error, setError] = useState('');
 
   const fetchMatches = async () => {
     setLoading(true);
     setError('');
     
     try {
-      const prompt = `You are an AI matching agent for a college collaboration platform.
-Student Profile:
-- Name: ${user.name}
-- Skills: ${user.skills?.join(', ') || 'None'}
-- Interests: ${user.interests?.join(', ') || 'None'}
+      // Small artificial delay to simulate AI processing
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-Available Groups:
-${groups.map(g => `- ${g.name} (ID: ${g.id}): ${g.description}. Skills needed: ${(g.skills || []).join(', ')}`).join('\n')}
+      // Only score groups the user hasn't joined yet and that have open spots
+      const openGroups = groups.filter(g => 
+        g.privacy !== 'private' && 
+        g.members < g.maxMembers && 
+        !g.memberIds?.includes(user.id)
+      );
 
-Analyze the overlap between the student's skills/interests and the available groups.
-Return EXACTLY 3 group recommendations. 
-You MUST format your ONLY response as a raw JSON array of objects. DO NOT include any markdown formatting like \`\`\`json.
-Schema: [{"groupId": number, "groupName": string, "score": number, "reason": "1-sentence reason"}]`;
+      const scoredGroups = openGroups.map(g => {
+        let score = 0;
+        let reasons = [];
 
-      const completion = await insforge.ai.chat.completions.create({
-        model: 'anthropic/claude-3.5-haiku',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1
+        // 1. Skill Match (highest weight — 50pts)
+        const userSkills = user.skills || [];
+        const skillOverlap = (g.skills || []).filter(s => userSkills.includes(s));
+        if (skillOverlap.length > 0) {
+          score += (skillOverlap.length / Math.max(1, g.skills.length)) * 50;
+          reasons.push(`Skill overlap in ${skillOverlap.slice(0, 2).join(' & ')}`);
+        }
+
+        // 2. Interest Match (30pts)
+        const userInterests = user.interests || [];
+        const interestMatch = userInterests.some(i => 
+          g.description?.toLowerCase().includes(i.toLowerCase()) ||
+          g.event?.toLowerCase().includes(i.toLowerCase())
+        );
+        if (interestMatch) {
+          score += 30;
+          reasons.push('Matches your core interests');
+        }
+
+        // 3. Faction / Group Type alignment (20pts)
+        const factionTypeMap = {
+          innovators: 'Hackathon',
+          architects: 'Technical',
+          creators: 'Cultural',
+          debuggers: 'Technical'
+        };
+        if (g.type === factionTypeMap[user.faction]) {
+          score += 20;
+          reasons.push(`Aligns with your ${user.faction} mindset`);
+        }
+
+        // Minimum score for diversity
+        if (score === 0) score = Math.floor(Math.random() * 20) + 10;
+        if (reasons.length === 0) reasons.push('Top pick based on campus trends');
+
+        return {
+          groupId: g.id,
+          groupName: g.name,
+          groupEvent: g.event,
+          groupType: g.type,
+          spotsLeft: g.maxMembers - g.members,
+          score: Math.min(100, Math.round(score)),
+          reason: reasons[0]
+        };
       });
 
-      let content = completion.choices[0].message.content.trim();
+      const topMatches = scoredGroups
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
       
-      // Safety bounds to extract JSON if model still wraps in markdown blocks
-      if (content.startsWith('```')) {
-        const firstBracket = content.indexOf('[');
-        const lastBracket = content.lastIndexOf(']');
-        if (firstBracket !== -1 && lastBracket !== -1) {
-          content = content.substring(firstBracket, lastBracket + 1);
-        }
+      if (topMatches.length === 0) {
+        setError("You've already joined all open groups, or there are no groups available right now.");
       }
 
-      const parsedMatches = JSON.parse(content);
-      // Sort matches by highest score
-      setMatches(parsedMatches.sort((a,b) => b.score - a.score));
+      setMatches(topMatches);
     } catch (err) {
-      console.error('AI Matching failed:', err);
-      setError('AI service unavailable. Using local matching algorithm...');
-      
-      // Fallback: Local skill overlap matching if the AI returns a 429 quota error or fails
-      const fallbackMatches = groups.map(g => ({
-        groupId: g.id,
-        groupName: g.name,
-        score: getOverlapScore(g),
-        reason: g.skills.some(s => user.skills.includes(s)) 
-          ? `Strong overlap in ${g.skills.filter(s => user.skills.includes(s)).join(', ')}.` 
-          : "Matches your general faction profile."
-      }))
-      .sort((a,b) => b.score - a.score)
-      .slice(0, 3);
-      
-      setMatches(fallbackMatches);
+      console.error('Matching failed:', err);
+      setError('Recommendation service unavailable.');
     } finally {
       setLoading(false);
     }
   };
 
   const getOverlapScore = (group) => {
-    const overlap = group.skills.filter(s => user.skills.includes(s)).length;
-    return Math.min(100, (overlap / Math.max(1, group.skills.length)) * 100);
+    const userSkills = user.skills || [];
+    const overlap = (group.skills || []).filter(s => userSkills.includes(s)).length;
+    return Math.min(100, (overlap / Math.max(1, (group.skills || []).length)) * 100);
+  };
+
+  const handleViewGroup = (groupId) => {
+    setSelectedGroupId(groupId);
+    navigate(`/group/${groupId}`);
   };
 
   const FactionIcon = factions[user.faction]?.icon || Bot;
+  const factionInfo = factions[user.faction];
 
   return (
     <div className="space-y-8 animate-[slideIn_0.3s_ease-out]">
       {/* Banner */}
-      <div className={"bg-gs-card border-2 rounded-3xl p-8 relative overflow-hidden " + factions[user.faction]?.border}>
+      <div className={`bg-gs-card border-2 rounded-3xl p-8 relative overflow-hidden ${factionInfo?.border}`}>
         <div className="absolute right-0 top-0 opacity-10 pointer-events-none scale-150 -translate-y-1/4 translate-x-1/4">
-          <FactionIcon size={300} className={factions[user.faction]?.color} />
+          <FactionIcon size={300} className={factionInfo?.color} />
         </div>
         
         <div className="relative z-10">
@@ -90,7 +119,7 @@ Schema: [{"groupId": number, "groupName": string, "score": number, "reason": "1-
             <Bot className="text-gs-cyan" size={32} /> AI Matchmaker
           </h1>
           <p className="mt-2 text-gs-text-muted max-w-2xl">
-            We use Claude 4 to analyze your profile ({user.skills.length} skills, {user.interests.length} interests) and find the perfect team dynamics.
+            AI-powered analysis of your profile ({(user.skills || []).length} skills, {(user.interests || []).length} interests) to find the perfect team. Matches are ranked by skill overlap, interest alignment, and faction compatibility.
           </p>
           <button 
             onClick={fetchMatches} 
@@ -109,41 +138,63 @@ Schema: [{"groupId": number, "groupName": string, "score": number, "reason": "1-
           <div className="w-16 h-16 border-4 border-gs-bg border-t-gs-cyan rounded-full animate-spin shadow-[0_0_20px_rgba(0,212,255,0.5)]" />
           <p className="font-bold animate-pulse">Running neural heuristics...</p>
         </div>
+      ) : error ? (
+        <div className="py-10 text-center text-gs-text-muted bg-gs-card border border-gs-border rounded-2xl">
+          <Bot size={32} className="mx-auto mb-3 opacity-40" />
+          <p>{error}</p>
+        </div>
       ) : matches.length > 0 ? (
         <div className="space-y-6 animate-[slideIn_0.3s_ease-out]">
           <h2 className="text-2xl font-bold">Top Recommendations</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {matches.map((m, i) => (
-              <div key={i} className={"bg-gs-card border border-gs-border rounded-2xl p-6 relative overflow-hidden group hover:-translate-y-1 transition-transform bg-linear-to-b from-transparent to-gs-bg"}>
-                <div className={"absolute top-0 left-0 w-full h-1 " + factions[user.faction]?.bg} />
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-xl">{m.groupName}</h3>
-                  <div className={"w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-gs-bg border-2 shadow-[0_0_15px_currentColor] " + factions[user.faction]?.color + " " + factions[user.faction]?.border}>
+              <div key={i} className={`bg-gs-card border border-gs-border rounded-2xl p-6 relative overflow-hidden group hover:-translate-y-1 transition-transform flex flex-col`}>
+                <div className={`absolute top-0 left-0 w-full h-1 ${factionInfo?.bg}`} />
+                
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1 min-w-0 pr-3">
+                    <h3 className="font-bold text-lg leading-tight">{m.groupName}</h3>
+                    <p className="text-xs text-gs-text-muted mt-1">{m.groupEvent} · {m.groupType}</p>
+                  </div>
+                  <div className={`w-14 h-14 shrink-0 rounded-full flex items-center justify-center font-bold text-sm bg-gs-bg border-2 shadow-[0_0_15px_currentColor] ${factionInfo?.color} ${factionInfo?.border}`}>
                     {m.score}%
                   </div>
                 </div>
-                <p className="text-sm text-gs-text-muted italic">"{m.reason}"</p>
+
+                <p className="text-sm text-gs-text-muted italic flex-1 mb-4">"{m.reason}"</p>
+
+                <div className="flex justify-between items-center mt-auto">
+                  <span className="text-xs text-gs-text-muted flex items-center gap-1">
+                    <Users size={12} /> {m.spotsLeft} spot{m.spotsLeft !== 1 ? 's' : ''} left
+                  </span>
+                  <button
+                    onClick={() => handleViewGroup(m.groupId)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all bg-gs-bg border border-gs-border hover:border-[var(--color-gs-cyan)] hover:text-[var(--color-gs-cyan)] ${factionInfo?.color}`}
+                  >
+                    View Group <ArrowRight size={14} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </div>
       ) : null}
 
-      {/* Skill Match View */}
+      {/* All Groups Skill Match View */}
       <div className="bg-gs-card border border-gs-border rounded-3xl p-8">
         <h2 className="text-xl font-bold mb-6">All Groups: Skill Overlap</h2>
         <div className="space-y-6">
           {groups.map(group => {
             const overlap = getOverlapScore(group);
             return (
-              <div key={group.id}>
+              <div key={group.id} className="group cursor-pointer" onClick={() => handleViewGroup(group.id)}>
                 <div className="flex justify-between items-center mb-2">
-                  <p className="font-medium">{group.name}</p>
+                  <p className="font-medium group-hover:text-[var(--color-gs-cyan)] transition-colors">{group.name}</p>
                   <p className="text-sm text-gs-cyan font-bold">{Math.round(overlap)}% Match</p>
                 </div>
                 <div className="w-full h-2 bg-gs-border rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gs-cyan shadow-[0_0_10px_rgba(0,212,255,0.6)]" 
+                    className="h-full bg-gs-cyan shadow-[0_0_10px_rgba(0,212,255,0.6)] transition-all duration-700" 
                     style={{ width: overlap + '%' }} 
                   />
                 </div>

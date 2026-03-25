@@ -17,11 +17,14 @@ export const MOCK_STUDENTS = [
 ];
 
 export const MOCK_GROUPS = [
-  { id: 1, name: 'Quantum Hackers', event: 'Spring Hackathon', type: 'Hackathon', description: 'Building a quantum-resistant chat app.', skills: ['React', 'Python'], members: 3, maxMembers: 4, privacy: 'public' },
-  { id: 2, name: 'Design Wizards', event: 'UI/UX Challenge', type: 'Cultural', description: 'Redesigning the campus portal.', skills: ['Figma', 'UI/UX'], members: 2, maxMembers: 3, privacy: 'public' },
-  { id: 3, name: 'AI Models R Us', event: 'AI Summit', type: 'Technical', description: 'Training local LLMs on student data.', skills: ['ML', 'Python'], members: 4, maxMembers: 4, privacy: 'private' },
-  { id: 4, name: 'Chain Breakers', event: 'Web3 Weekend', type: 'Hackathon', description: 'Decentralized voting app for campus.', skills: ['Node.js', 'React'], members: 1, maxMembers: 4, privacy: 'public' },
-  { id: 5, name: 'Game Jam Team', event: '48h Game Jam', type: 'Technical', description: 'Making a 2D platformer.', skills: ['C++', 'UI/UX'], members: 2, maxMembers: 5, privacy: 'public' },
+  { id: 1, name: 'Quantum Hackers', event: 'Spring Hackathon', type: 'Hackathon', description: 'Building a quantum-resistant chat app using post-quantum cryptography.', skills: ['React', 'Python', 'Cryptography'], members: 3, maxMembers: 4, privacy: 'public' },
+  { id: 2, name: 'Design Wizards', event: 'UI/UX Challenge', type: 'Cultural', description: 'Redesigning the campus portal for better accessibility and modern aesthetics.', skills: ['Figma', 'UI/UX', 'Accessibility'], members: 2, maxMembers: 3, privacy: 'public' },
+  { id: 3, name: 'AI Models R Us', event: 'AI Summit', type: 'Technical', description: 'Training local LLMs on student-specific data for personalized study assistants.', skills: ['ML', 'Python', 'PyTorch'], members: 4, maxMembers: 4, privacy: 'private' },
+  { id: 4, name: 'Chain Breakers', event: 'Web3 Weekend', type: 'Hackathon', description: 'Decentralized voting app for campus elections using Ethereum smart contracts.', skills: ['Solidity', 'Node.js', 'React'], members: 1, maxMembers: 4, privacy: 'public' },
+  { id: 5, name: 'Game Jam Team', event: '48h Game Jam', type: 'Technical', description: 'Making a 2D platformer with procedurally generated levels and unique mechanics.', skills: ['C++', 'Unity', 'UI/UX'], members: 2, maxMembers: 5, privacy: 'public' },
+  { id: 6, name: 'Cloud Pioneers', event: 'AWS Innovate', type: 'Technical', description: 'Deploying serverless architectures for scalable student management systems.', skills: ['AWS', 'Terraform', 'Node.js'], members: 1, maxMembers: 4, privacy: 'public' },
+  { id: 7, name: 'Eco Warriors', event: 'Green Campus', type: 'Cultural', description: 'Organizing campus-wide environmental awareness and cleanup strategy.', skills: ['Leadership', 'Event Management'], members: 4, maxMembers: 10, privacy: 'public' },
+  { id: 10, name: 'Secure Bytes', event: 'CyberSec Meetup', type: 'Technical', description: 'Penetration testing and security auditing of internal college network portals.', skills: ['Cybersecurity', 'Linux', 'Networking'], members: 2, maxMembers: 3, privacy: 'public' },
 ];
 
 export const ONBOARDING_SKILLS = ['React', 'Python', 'UI/UX', 'ML', 'Figma', 'Node.js', 'C++', 'Java', 'Rust', 'Go', 'AWS', 'Docker', 'GraphQL', 'Next.js', 'Tailwind', 'SQL', 'MongoDB', 'CyberSecurity', 'Game Dev', 'Data Sci'];

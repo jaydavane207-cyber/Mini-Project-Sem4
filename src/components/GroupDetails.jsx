@@ -4,7 +4,7 @@ import { Users, Lock, Unlock, Settings, LogOut, ShieldAlert, MessageSquare, Layo
 import { useAppContext } from '../context/AppContext';
 import { ONBOARDING_AVATARS } from '../data/mockData';
 import KanbanBoard from './KanbanBoard';
-import insforge from '../lib/insforge';
+import supabase from '../lib/supabase';
 
 // ─── Emoji Data ───────────────────────────────────────────────────────────────
 const EMOJI_CATEGORIES = {
@@ -59,7 +59,7 @@ function GroupEmojiPicker({ onSelect, onClose }) {
 export default function GroupDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, groups, setGroups, selectedGroupId, setSelectedGroupId, showToast, factions, students } = useAppContext();
+  const { user, groups, setGroups, selectedGroupId, setSelectedGroupId, showToast, factions, students, refreshGroups } = useAppContext();
   
   // Update context state but use 'id' primarily
   useEffect(() => {
@@ -99,7 +99,7 @@ export default function GroupDetails() {
   const fetchChatHistory = useCallback(async () => {
     if (!selectedGroupId) return;
     setMessagesLoading(true);
-    const { data, error } = await insforge.database
+    const { data, error } = await supabase
       .from('messages')
       .select('*, sender:profiles(name, avatar)')
       .eq('group_id', selectedGroupId)
@@ -114,33 +114,45 @@ export default function GroupDetails() {
   useEffect(() => {
     fetchChatHistory();
     
-    const channel = `chat:${selectedGroupId}`;
-    const connectRealtime = async () => {
-      await insforge.realtime.connect();
-      await insforge.realtime.subscribe(channel);
-      
-      insforge.realtime.on('new_message', (payload) => {
-        if (payload.group_id === selectedGroupId) {
-          setGroupMessages(prev => {
-            if (prev.find(m => m.id === payload.id)) return prev;
-            return [...prev, formatMessage(payload)];
-          });
+    // Supabase Realtime: listen to postgres_changes on messages table
+    const channel = supabase
+      .channel(`chat:${selectedGroupId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `group_id=eq.${selectedGroupId}` },
+        async (payload) => {
+          // Fetch the full message with sender profile
+          const { data: fullMsg } = await supabase
+            .from('messages')
+            .select('*, sender:profiles(name, avatar)')
+            .eq('id', payload.new.id)
+            .single();
+          if (fullMsg) {
+            setGroupMessages(prev => {
+              if (prev.find(m => m.id === fullMsg.id)) return prev;
+              return [...prev, formatMessage(fullMsg)];
+            });
+          }
         }
-      });
-
-      insforge.realtime.on('message_update', (payload) => {
-        if (payload.group_id === selectedGroupId) {
-          setGroupMessages(prev => prev.map(m => m.id === payload.id ? formatMessage(payload) : m));
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `group_id=eq.${selectedGroupId}` },
+        async (payload) => {
+          const { data: fullMsg } = await supabase
+            .from('messages')
+            .select('*, sender:profiles(name, avatar)')
+            .eq('id', payload.new.id)
+            .single();
+          if (fullMsg) {
+            setGroupMessages(prev => prev.map(m => m.id === fullMsg.id ? formatMessage(fullMsg) : m));
+          }
         }
-      });
-    };
-
-    connectRealtime();
+      )
+      .subscribe();
 
     return () => {
-      insforge.realtime.unsubscribe(channel);
-      insforge.realtime.off('new_message');
-      insforge.realtime.off('message_update');
+      supabase.removeChannel(channel);
     };
   }, [selectedGroupId, fetchChatHistory, user.id]);
 
@@ -155,20 +167,63 @@ export default function GroupDetails() {
   const isAdmin = group.adminId === user.id;
   const isMember = group.memberIds?.includes(user.id);
 
-  const handleLeaveGroup = () => {
-    const updated = groups.map(g => {
-      if (g.id === group.id) {
-        return { 
-          ...g, 
-          members: Math.max(0, g.members - 1),
-          memberIds: (g.memberIds || []).filter(id => id !== user.id)
-        };
-      }
-      return g;
-    });
-    setGroups(updated);
-    showToast('You have left the group.');
-    navigate('/dashboard');
+  const handleLeaveGroup = async () => {
+    const { error } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('group_id', group.id)
+      .eq('profile_id', user.id);
+
+    if (!error) {
+      // Decrement fixed member count
+      await supabase
+        .from('groups')
+        .update({ members: Math.max(0, group.members - 1) })
+        .eq('id', group.id);
+
+      if (refreshGroups) await refreshGroups();
+      showToast('You have left the group.');
+      navigate('/dashboard');
+    } else {
+      showToast('Failed to leave group: ' + error.message, 'error');
+    }
+  };
+
+  const handleJoinGroup = async () => {
+    if (group.members >= group.maxMembers) {
+      showToast('Group is full!', 'error');
+      return;
+    }
+
+    if (group.privacy === 'private') {
+      showToast('Request sent to admin for approval!');
+      return;
+    }
+
+    if (group.privacy === 'password') {
+      showToast('Please enter the password first.', 'info');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('group_members')
+      .insert({
+        group_id: group.id,
+        profile_id: user.id
+      });
+
+    if (!error) {
+      // Increment fixed member count
+      await supabase
+        .from('groups')
+        .update({ members: group.members + 1 })
+        .eq('id', group.id);
+
+      if (refreshGroups) await refreshGroups();
+      showToast('Welcome to the group!');
+    } else {
+      showToast('Failed to join group: ' + error.message, 'error');
+    }
   };
 
   const handleChangePrivacy = (e) => {
@@ -189,7 +244,7 @@ export default function GroupDetails() {
       is_poll: false
     };
 
-    const { error } = await insforge.database.from('messages').insert(newMessage);
+    const { error } = await supabase.from('messages').insert(newMessage);
     
     if (!error) {
       setChatInput('');
@@ -230,7 +285,7 @@ export default function GroupDetails() {
       voters: {} // Track who voted for what: { user_id: option_index }
     };
 
-    const { error } = await insforge.database.from('messages').insert({
+    const { error } = await supabase.from('messages').insert({
       group_id: group.id,
       sender_id: user.id,
       text: pollQuestion,
@@ -250,7 +305,7 @@ export default function GroupDetails() {
 
   const handleVote = async (msgId, optionIdx) => {
     // 1. Fetch current message state
-    const { data: msg, error: fetchErr } = await insforge.database
+    const { data: msg, error: fetchErr } = await supabase
       .from('messages')
       .select('media')
       .eq('id', msgId)
@@ -269,7 +324,7 @@ export default function GroupDetails() {
     pollData.options[optionIdx].votes += 1;
 
     // 3. Persist update
-    const { error: updateErr } = await insforge.database
+    const { error: updateErr } = await supabase
       .from('messages')
       .update({ media: pollData })
       .eq('id', msgId);
@@ -561,17 +616,7 @@ export default function GroupDetails() {
                 )}
                 <button 
                   disabled={group.members >= group.maxMembers}
-                  onClick={() => {
-                    if (group.privacy === 'private') {
-                      showToast('Request sent to admin for approval!');
-                    } else if (group.privacy === 'password') {
-                      showToast('Incorrect password.', 'error');
-                    } else {
-                      const updated = groups.map(g => g.id === group.id ? { ...g, members: g.members + 1, memberIds: [...(g.memberIds || []), user.id] } : g);
-                      setGroups(updated);
-                      showToast('Welcome to the group!');
-                    }
-                  }}
+                  onClick={handleJoinGroup}
                   className="w-full py-3 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {group.members >= group.maxMembers ? 'Group Full' : group.privacy === 'private' ? 'Request to Join' : group.privacy === 'password' ? 'Unlock & Join' : 'Join Group'}

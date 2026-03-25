@@ -5,7 +5,7 @@ import {
   Linkedin, Github, Instagram, Twitter, Bell, Shield, Check,
   ChevronDown, ChevronUp, Plus, X
 } from 'lucide-react';
-import insforge from '../lib/insforge';
+import supabase from '../lib/supabase';
 
 const COLLEGES = [
   'IIT Bombay', 'IIT Delhi', 'IIT Madras', 'IIT Kanpur', 'IIT Kharagpur',
@@ -77,14 +77,18 @@ function Step1({ data, onChange, onNext }) {
     setLoading(true);
     setError('');
     try {
-      const { data: signUpData, error: authError } = await insforge.auth.signUp({
+      const { data: signUpData, error: authError } = await supabase.auth.signUp({
         email: data.email,
-        password: data.password
+        password: data.password,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
       });
 
       if (authError) throw authError;
 
-      if (signUpData?.requireEmailVerification) {
+      // Supabase: if email confirmation is required, user is returned but session is null
+      if (signUpData?.user && !signUpData?.session) {
         setIsVerifying(true);
       } else {
         onNext();
@@ -100,9 +104,10 @@ function Step1({ data, onChange, onNext }) {
     setLoading(true);
     setError('');
     try {
-      const { error: verifyError } = await insforge.auth.verifyEmail({
+      const { error: verifyError } = await supabase.auth.verifyOtp({
         email: data.email,
-        otp: otp
+        token: otp,
+        type: 'signup'
       });
 
       if (verifyError) throw verifyError;
@@ -117,7 +122,7 @@ function Step1({ data, onChange, onNext }) {
   const handleResendOtp = async () => {
     setError('');
     try {
-      await insforge.auth.resendVerificationEmail({ email: data.email });
+      await supabase.auth.resend({ type: 'signup', email: data.email });
       // Optionally show a success message
     } catch (err) {
       setError(err.message || 'Failed to resend code.');
@@ -126,9 +131,9 @@ function Step1({ data, onChange, onNext }) {
 
   const handleGoogleSignup = async () => {
     try {
-      const { data: authData, error: authError } = await insforge.auth.signInWithOAuth({
+      const { data: authData, error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        redirectTo: window.location.origin
+        options: { redirectTo: window.location.origin }
       });
       if (authError) {
         setError(authError.message);
@@ -142,8 +147,12 @@ function Step1({ data, onChange, onNext }) {
     return (
       <div className="space-y-5 animate-[slideIn_0.3s_ease-out]">
         <div>
-          <h2 className="text-3xl font-bold text-gs-text-main">Verify Email</h2>
-          <p className="text-gs-text-muted mt-1">We've sent a 6-digit code to <span className="text-gs-cyan font-medium">{data.email}</span></p>
+          <h2 className="text-3xl font-bold text-gs-text-main">Finalize Signup</h2>
+          <p className="text-gs-text-muted mt-1">We've sent a 6-digit code OR confirmation link to <span className="text-gs-cyan font-medium">{data.email}</span></p>
+          <div className="mt-4 p-3 bg-gs-cyan/5 border border-gs-cyan/20 rounded-xl text-xs text-gs-text-muted leading-relaxed">
+            <p><strong>Option 1:</strong> Enter the 6-digit code below.</p>
+            <p className="mt-1"><strong>Option 2:</strong> Click the confirmation link in the email. After clicking, you can close this window and log in.</p>
+          </div>
         </div>
 
         {error && (
@@ -204,7 +213,7 @@ function Step1({ data, onChange, onNext }) {
 
       {/* Email */}
       <div>
-        <label className="block text-sm text-gs-text-muted mb-2">InsForge College Email</label>
+        <label className="block text-sm text-gs-text-muted mb-2">College Email</label>
         <div className="relative">
           <Mail size={18} className="absolute left-3 top-3.5 text-gs-text-muted" />
           <input
@@ -223,7 +232,7 @@ function Step1({ data, onChange, onNext }) {
 
       {/* Password */}
       <div>
-        <label className="block text-sm text-gs-text-muted mb-2">InsForge Password</label>
+        <label className="block text-sm text-gs-text-muted mb-2">Password</label>
         <div className="relative">
           <Lock size={18} className="absolute left-3 top-3.5 text-gs-text-muted" />
           <input
@@ -700,16 +709,16 @@ export default function Signup({ onNavigate }) {
     setIsSubmitting(true);
     setSubmitError('');
     try {
-      const { data: sessionData, error: sessionError } = await insforge.auth.getCurrentSession();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
 
       const userId = sessionData?.session?.user?.id;
       if (userId) {
-        // Update user profile name if not already set
-        await insforge.auth.setProfile({ name: formData.fullName });
+        // Update user profile name
+        await supabase.auth.updateUser({ data: { name: formData.fullName } });
 
         // Insert profile data
-        const { error: dbError } = await insforge.database
+        const { error: dbError } = await supabase
           .from('profiles')
           .insert([{
             id: userId,

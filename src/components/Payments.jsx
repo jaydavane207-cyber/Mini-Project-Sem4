@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CreditCard, DollarSign, Wallet, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import insforge from '../lib/insforge';
+import supabase from '../lib/supabase';
 
 export default function Payments() {
   const { user, showToast } = useAppContext();
@@ -12,7 +12,7 @@ export default function Payments() {
   const fetchTransactions = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await insforge.database
+    const { data, error } = await supabase
       .from('transactions')
       .select('*')
       .eq('profile_id', user.id)
@@ -39,7 +39,7 @@ export default function Payments() {
       return;
     }
 
-    const { error } = await insforge.database.from('transactions').insert({
+    const { error } = await supabase.from('transactions').insert({
       profile_id: user.id,
       amount: numAmt,
       description: desc,

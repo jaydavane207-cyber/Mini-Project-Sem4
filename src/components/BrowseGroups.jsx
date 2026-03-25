@@ -1,13 +1,15 @@
 'use client'
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { Compass, Sparkles, X } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { ONBOARDING_SKILLS, ONBOARDING_AVATARS } from '../data/mockData';
 import { useNavigate } from 'react-router-dom';
+import supabase from '../lib/supabase';
 
 export default function BrowseGroups() {
   const navigate = useNavigate();
-  const { user, groups, setGroups, showToast, setSelectedGroupId } = useAppContext();
+  const { user, groups, setGroups, showToast, setSelectedGroupId, refreshGroups } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,20 +21,68 @@ export default function BrowseGroups() {
     (g.name.toLowerCase().includes(searchTerm.toLowerCase()) || g.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleCreateGroup = (e) => {
+  const handleCreateGroup = async (e) => {
     e.preventDefault();
     if (!newGroup.name || !newGroup.description) return;
-    const finalGroup = { 
-      ...newGroup, 
-      id: Date.now(), 
-      members: 1, 
-      adminId: user.id, 
-      memberIds: [user.id] 
-    };
-    setGroups([finalGroup, ...groups]);
-    setIsModalOpen(false);
-    showToast('Group created successfully!');
-    setNewGroup({ name: '', event: '', type: 'Hackathon', description: '', maxMembers: 4, skills: [], privacy: 'public' });
+
+    try {
+      const dbGroup = {
+        name: newGroup.name,
+        event: newGroup.event || 'Hackathon',
+        type: newGroup.type,
+        description: newGroup.description,
+        skills: newGroup.skills,
+        members: 1, 
+        max_members: newGroup.maxMembers,
+        privacy: newGroup.privacy,
+        admin_id: user?.id || null
+      };
+
+      const { data: insertedGroup, error: groupError } = await supabase
+        .from('groups')
+        .insert([dbGroup])
+        .select()
+        .single();
+
+      if (groupError) {
+        throw groupError;
+      }
+
+      // 🚨 CRITICAL: Add the creator as the first member!
+      if (user?.id && insertedGroup) {
+        const { error: memberError } = await supabase
+          .from('group_members')
+          .insert({
+            group_id: insertedGroup.id,
+            profile_id: user.id
+          });
+          
+        if (memberError) {
+          console.error('Error adding creator as member:', memberError);
+          // We still created the group, but this might cause UI issues
+        }
+      }
+
+      // Refresh data via context
+      if (refreshGroups) {
+        await refreshGroups();
+      } else {
+        const finalGroup = {
+          ...insertedGroup,
+          adminId: insertedGroup.admin_id,
+          maxMembers: insertedGroup.max_members,
+          memberIds: [user.id]
+        };
+        setGroups([finalGroup, ...groups]);
+      }
+
+      setIsModalOpen(false);
+      showToast('Group created successfully!');
+      setNewGroup({ name: '', event: '', type: 'Hackathon', description: '', maxMembers: 4, skills: [], privacy: 'public' });
+    } catch (err) {
+      console.error('Error creating group:', err);
+      showToast(`Group Creation Failed: ${err.message || 'Check connection'}`, 'error');
+    }
   };
 
   const toggleModalSkill = (skill) => {
@@ -44,7 +94,8 @@ export default function BrowseGroups() {
   };
 
   return (
-    <div className="space-y-8 animate-[slideIn_0.3s_ease-out]">
+    <>
+      <div className="space-y-8 animate-[slideIn_0.3s_ease-out]">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-4xl font-bold">Browse Groups</h1>
@@ -148,11 +199,15 @@ export default function BrowseGroups() {
           );
         })}
       </div>
+      </div>
 
-      {/* Create Group Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-[slideIn_0.2s_ease-out]">
+      {/* Create Group Modal via Portal - renders at document.body to escape layout containers */}
+      {isModalOpen && ReactDOM.createPortal(
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false); }}
+        >
+          <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-3xl p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Create Group</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-text-main)]"><X size={24} /></button>
@@ -187,7 +242,7 @@ export default function BrowseGroups() {
               </div>
               <div>
                 <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1">Description</label>
-                <textarea required rows="2" value={newGroup.description} onChange={e => setNewGroup({...newGroup, description: e.target.value})} className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)] resize-none" />
+                <textarea required rows="3" value={newGroup.description} onChange={e => setNewGroup({...newGroup, description: e.target.value})} className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)] resize-none" />
               </div>
               <div>
                 <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1">Max Members: {newGroup.maxMembers}</label>
@@ -211,8 +266,9 @@ export default function BrowseGroups() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }

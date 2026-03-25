@@ -8,7 +8,7 @@ import {
   BarChart2, Clock, CheckCircle, XCircle, Save, X
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import insforge from '../lib/insforge';
+import supabase from '../lib/supabase';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -546,7 +546,7 @@ export default function UserProfile() {
 
     // API Call
     try {
-      const { error } = await insforge.database
+      const { error } = await supabase
         .from('profiles')
         .update({
           email: formData.email,

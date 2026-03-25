@@ -19,10 +19,27 @@ interface Stat {
   color: string;
 }
 
+import { seedDatabase } from '../lib/seeddata';
+import { useState } from 'react';
+
 export default function DashboardPage() {
-  const { user, factions, stats: liveStats } = useAppContext();
+  const { user, factions, stats: liveStats, refreshGroups, refreshStats, showToast } = useAppContext();
+  const [isSeeding, setIsSeeding] = useState(false);
   
   if (!user) return null;
+
+  const handleSeed = async () => {
+    setIsSeeding(true);
+    const result = await seedDatabase(user);
+    if (result.success) {
+      showToast('Database seeded with campus data!', 'success');
+      if (refreshGroups) await refreshGroups();
+      if (refreshStats) await refreshStats();
+    } else {
+      showToast(result.error || 'Seeding failed. Ensure SQL tables are created.', 'error');
+    }
+    setIsSeeding(false);
+  };
   
   const faction: Faction = factions[user.faction as keyof typeof factions] || factions.innovators;
 
@@ -35,9 +52,20 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-[slideIn_0.3s_ease-out]">
-      <header className="mb-8">
-        <h1 className="text-4xl font-bold">Welcome back, {user.name}</h1>
-        <p className="text-gs-text-muted mt-2">Here is what's happening on campus today.</p>
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-4xl font-bold">Welcome back, {user.name}</h1>
+          <p className="text-gs-text-muted mt-2">Here is what's happening on campus today.</p>
+        </div>
+        {liveStats.activeGroups === 0 && (
+          <button 
+            onClick={handleSeed}
+            disabled={isSeeding}
+            className="px-6 py-3 bg-[var(--color-gs-bg)] border border-[var(--color-gs-cyan)]/50 text-[var(--color-gs-cyan)] font-bold rounded-xl hover:bg-[var(--color-gs-cyan)]/10 transition-all flex items-center gap-2"
+          >
+            {isSeeding ? 'Seeding...' : 'Seed Mock Data'} <Sparkles size={18} />
+          </button>
+        )}
       </header>
 
       {/* Stat Cards */}

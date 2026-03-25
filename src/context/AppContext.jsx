@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import insforge from '../lib/insforge';
+import supabase from '../lib/supabase';
 import { MOCK_FACTIONS } from '../data/mockData';
 
 const AppContext = createContext();
@@ -28,21 +28,32 @@ export const AppProvider = ({ children }) => {
   const [isInitializingAuth, setIsInitializingAuth] = useState(true);
 
   const fetchGroups = useCallback(async () => {
-    const { data, error } = await insforge.database.from('groups').select('*');
-    if (!error) setGroups(data);
-    else console.error('Error fetching groups:', error);
+    // Fetch groups and their members using a join or separate query
+    const { data: groupsData, error: groupsError } = await supabase.from('groups').select('*, group_members(profile_id)');
+    
+    if (!groupsError) {
+      const mappedGroups = groupsData.map(g => ({
+        ...g,
+        adminId: g.admin_id,
+        maxMembers: g.max_members || g.maxMembers,
+        memberIds: g.group_members?.map(m => m.profile_id) || []
+      }));
+      setGroups(mappedGroups.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)));
+    } else {
+      console.error('Error fetching groups:', groupsError);
+    }
   }, []);
 
   const fetchStudents = useCallback(async () => {
-    const { data, error } = await insforge.database.from('profiles').select('*');
+    const { data, error } = await supabase.from('profiles').select('*');
     if (!error) setStudents(data);
     else console.error('Error fetching students:', error);
   }, []);
 
   const fetchStats = useCallback(async () => {
-    const { count: groupCount } = await insforge.database.from('groups').select('*', { count: 'exact', head: true });
-    const { count: hackathonCount } = await insforge.database.from('groups').select('*', { count: 'exact', head: true }).eq('type', 'Hackathon');
-    const { count: onlineCount } = await insforge.database.from('profiles').select('*', { count: 'exact', head: true }).eq('online', true);
+    const { count: groupCount } = await supabase.from('groups').select('*', { count: 'exact', head: true });
+    const { count: hackathonCount } = await supabase.from('groups').select('*', { count: 'exact', head: true }).eq('type', 'Hackathon');
+    const { count: onlineCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('online', true);
     
     setStats({
       activeGroups: groupCount || 0,
@@ -61,11 +72,11 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const { data, error } = await insforge.auth.getCurrentSession();
+        const { data, error } = await supabase.auth.getSession();
         
         if (data?.session) {
           const authUser = data.session.user;
-          const { data: profileData } = await insforge.database
+          const { data: profileData } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', authUser.id)
@@ -121,7 +132,7 @@ export const AppProvider = ({ children }) => {
       email: user?.email || userData.email || ''
     };
 
-    const { data, error } = await insforge.database
+    const { data, error } = await supabase
       .from('profiles')
       .upsert(profile)
       .select()
@@ -139,10 +150,10 @@ export const AppProvider = ({ children }) => {
   const logout = async () => {
     if (user && user.onboardingComplete) {
       try {
-        await insforge.database.from('profiles').update({ online: false }).eq('id', user.id);
+        await supabase.from('profiles').update({ online: false }).eq('id', user.id);
       } catch (e) { /* ignore */ }
     }
-    await insforge.auth.signOut();
+    await supabase.auth.signOut();
     setUserState(null);
     showToast('Logged out successfully.', 'success');
   };
@@ -155,10 +166,10 @@ export const AppProvider = ({ children }) => {
   const checkAuth = async () => {
     setIsInitializingAuth(true);
     try {
-      const { data, error } = await insforge.auth.getCurrentSession();
+      const { data, error } = await supabase.auth.getSession();
       if (data?.session) {
         const authUser = data.session.user;
-        const { data: profileData } = await insforge.database
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', authUser.id)

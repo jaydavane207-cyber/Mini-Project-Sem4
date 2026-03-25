@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Zap, Mail, Lock, ArrowRight } from 'lucide-react';
-import insforge from '../lib/insforge';
+import supabase from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login({ onNavigate, onLogin }) {
@@ -23,7 +23,7 @@ export default function Login({ onNavigate, onLogin }) {
       setIsSubmitting(true);
       setError('');
       try {
-        const { data, error: authError } = await insforge.auth.signInWithPassword({
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password
         });
@@ -45,9 +45,9 @@ export default function Login({ onNavigate, onLogin }) {
 
   const handleGoogleLogin = async () => {
     try {
-      const { data, error } = await insforge.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        redirectTo: window.location.origin
+        options: { redirectTo: window.location.origin }
       });
       if (error) {
         setError(error.message);

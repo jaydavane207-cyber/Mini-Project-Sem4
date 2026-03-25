@@ -1,6 +1,6 @@
 import { Plus, X, Tag, Loader2 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
-import insforge from '../lib/insforge';
+import supabase from '../lib/supabase';
 
 const TAG_OPTIONS = ['Frontend', 'Backend', 'Security', 'DevOps', 'UI/UX', 'Database', 'Testing', 'Documentation'];
 
@@ -19,7 +19,7 @@ export default function KanbanBoard({ groupId }) {
 
   const fetchTasks = async () => {
     setLoading(true);
-    const { data, error } = await insforge.database
+    const { data, error } = await supabase
       .from('tasks')
       .select('*')
       .eq('group_id', groupId);
@@ -51,7 +51,7 @@ export default function KanbanBoard({ groupId }) {
       tags: newTaskTags.length > 0 ? newTaskTags : ['General']
     };
 
-    const { error } = await insforge.database.from('tasks').insert(newTask);
+    const { error } = await supabase.from('tasks').insert(newTask);
     
     if (!error) {
       fetchTasks();
@@ -68,7 +68,7 @@ export default function KanbanBoard({ groupId }) {
   };
 
   const handleDeleteTask = async (colId, taskId) => {
-    const { error } = await insforge.database.from('tasks').delete().eq('id', taskId);
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId);
     if (!error) {
       fetchTasks();
     }

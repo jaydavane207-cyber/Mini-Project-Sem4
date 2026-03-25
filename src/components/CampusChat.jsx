@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageSquare, Hash, Paperclip, Smile, Archive, Slash, Send, Reply, X, ChevronDown, Image, File, Search } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import supabase from '../lib/supabase';
 
 // ─── Emoji Data ───────────────────────────────────────────────────────────────
 const EMOJI_CATEGORIES = {
@@ -89,15 +90,65 @@ export default function CampusChat() {
   const chatAreaRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const [generalMessages, setGeneralMessages] = useState([
-    { id: 1, text: "Anyone forming a team for the upcoming game jam?", senderId: 2, timestamp: "10:00 AM", reactions: { '👍': [4] }, replyTo: null },
-    { id: 2, text: "Yeah! We need a UI designer. DM me 🎨", senderId: 4, timestamp: "10:02 AM", reactions: {}, replyTo: null },
-    { id: 3, text: "I'm in! I've got React + Figma skills.", senderId: 1, timestamp: "10:05 AM", reactions: { '🔥': [2, 4] }, replyTo: null },
-  ]);
+  const [generalMessages, setGeneralMessages] = useState([]);
+  const [dmMessages, setDmMessages] = useState({});
 
-  const [dmMessages, setDmMessages] = useState({
-    2: [{ id: 101, text: "Hey, are you still looking for a game jam team?", senderId: 2, timestamp: "10:30 AM", reactions: {}, replyTo: null }]
-  });
+  // ─── Supabase Sync ─────────────────────────────────────────────────────────────
+  
+  // Fetch messages for active chat
+  const fetchMessages = useCallback(async () => {
+    try {
+      let query = supabase.from('messages').select('*, sender:profiles(*)').order('created_at', { ascending: true });
+      
+      if (activeChat === 'general') {
+        query = query.is('group_id', null); // In this schema, null group_id could mean general campus chat
+      } else {
+        // Direct messages would need a group_id or a specific DM table, 
+        // but for now let's assume activeChat IS a group_id if not 'general'
+        query = query.eq('group_id', Number(activeChat));
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const mapped = data.map(m => ({
+        id: m.id,
+        text: m.text,
+        senderId: m.sender_id,
+        timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        reactions: {}, // Currently handled locally or needs extra table
+        replyTo: null,
+        media: m.media,
+        sender: m.sender
+      }));
+
+      if (activeChat === 'general') {
+        setGeneralMessages(mapped);
+      } else {
+        setDmMessages(prev => ({ ...prev, [activeChat]: mapped }));
+      }
+    } catch (err) {
+      console.error('Error fetching messages:', err);
+    }
+  }, [activeChat]);
+
+  useEffect(() => {
+    fetchMessages();
+
+    // Subscribe to new messages
+    const channel = supabase
+      .channel('campus-chat')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+        const newM = payload.new;
+        if ((activeChat === 'general' && !newM.group_id) || (newM.group_id === Number(activeChat))) {
+          // We need sender info too, so we might need to fetch it or use a view
+          fetchMessages(); 
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [activeChat, fetchMessages]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -114,32 +165,30 @@ export default function CampusChat() {
     setShowScrollBtn(false);
   };
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e?.preventDefault();
     if (!inputVal.trim() && !mediaPreview) return;
+    if (!user) { showToast('Please sign in to chat', 'error'); return; }
 
-    const now = new Date();
-    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const newMessage = {
-      id: Date.now(),
+      group_id: activeChat === 'general' ? null : Number(activeChat),
+      sender_id: user.id,
       text: inputVal,
-      senderId: 'ME',
-      timestamp: timeString,
-      reactions: {},
-      replyTo: replyTo ? { text: replyTo.text, sender: replyTo.senderId } : null,
       media: mediaPreview,
     };
 
-    if (activeChat === 'general') {
-      setGeneralMessages(prev => [...prev, newMessage]);
-    } else {
-      setDmMessages(prev => ({ ...prev, [activeChat]: [...(prev[activeChat] || []), newMessage] }));
+    try {
+      const { error } = await supabase.from('messages').insert([newMessage]);
+      if (error) throw error;
+      
+      setInputVal('');
+      setReplyTo(null);
+      setMediaPreview(null);
+      setIsTyping(false);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      showToast('Failed to send message', 'error');
     }
-
-    setInputVal('');
-    setReplyTo(null);
-    setMediaPreview(null);
-    setIsTyping(false);
   };
 
   const handleInputChange = (e) => {
