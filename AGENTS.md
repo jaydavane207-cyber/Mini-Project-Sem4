@@ -1,10 +1,4 @@
----
-description: Instructions building apps with MCP
-globs: *
-alwaysApply: true
----
-
-# InsForge SDK Documentation - Overview
+# InsForge SDK Documentation - Overview (DEPRECATED)
 
 ## What is InsForge?
 
