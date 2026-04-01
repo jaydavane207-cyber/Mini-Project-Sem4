@@ -4,7 +4,7 @@ import { ONBOARDING_SKILLS, ONBOARDING_INTERESTS, ONBOARDING_AVATARS, ONBOARDING
 
 export default function OnboardingFlow({ onComplete }) {
   const [step, setStep] = useState(1);
-  const [profile, setProfile] = useState({ name: '', college: '', year: '1st Year' });
+  const [profile, setProfile] = useState({ name: '', college: '', phone: '', year: '1st Year' });
   const [skills, setSkills] = useState([]);
   const [interests, setInterests] = useState([]);
   const [quizAnswers, setQuizAnswers] = useState(Array(6).fill(null));
@@ -44,6 +44,10 @@ export default function OnboardingFlow({ onComplete }) {
               <input type="text" value={profile.college} onChange={e => setProfile({...profile, college: e.target.value})} className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors" placeholder="e.g. MIT" />
             </div>
             <div>
+              <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Phone Number</label>
+              <input type="tel" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] transition-colors" placeholder="e.g. +1 234 567 8900" />
+            </div>
+            <div>
               <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Academic Year</label>
               <div className="flex flex-wrap gap-2">
                 {['1st Year', '2nd Year', '3rd Year', '4th Year', 'Grad'].map(y => (
@@ -53,7 +57,7 @@ export default function OnboardingFlow({ onComplete }) {
                 ))}
               </div>
             </div>
-            <button disabled={!profile.name || !profile.college} onClick={handleNext} className="w-full py-3 mt-4 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-lg hover:bg-cyan-400 transition-colors disabled:opacity-50">Next</button>
+            <button disabled={!profile.name || !profile.college || !profile.phone} onClick={handleNext} className="w-full py-3 mt-4 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-lg hover:bg-cyan-400 transition-colors disabled:opacity-50">Next</button>
           </div>
         );
       case 2:

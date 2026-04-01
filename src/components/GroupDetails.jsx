@@ -59,7 +59,7 @@ function GroupEmojiPicker({ onSelect, onClose }) {
 export default function GroupDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, groups, setGroups, selectedGroupId, setSelectedGroupId, showToast, factions, students, refreshGroups } = useAppContext();
+  const { user, groups, setGroups, selectedGroupId, setSelectedGroupId, showToast, factions, students, refreshGroups, loading } = useAppContext();
   
   // Update context state but use 'id' primarily
   useEffect(() => {
@@ -161,7 +161,23 @@ export default function GroupDetails() {
   }, [groupMessages]);
 
   if (!group) {
-    return <div className="p-8"><button onClick={() => navigate('/dashboard')}>Go Back</button></div>;
+    // BUG-4 FIX: Show spinner while groups are loading, only 404 if fully loaded
+    if (loading || groups.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-[var(--color-gs-text-muted)]">
+          <div className="w-12 h-12 border-4 border-[var(--color-gs-bg)] border-t-[var(--color-gs-cyan)] rounded-full animate-spin" />
+          <p className="text-sm font-bold animate-pulse">Loading group...</p>
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
+        <span className="text-6xl">🔍</span>
+        <h2 className="text-2xl font-bold text-[var(--color-gs-text-main)]">Group Not Found</h2>
+        <p className="text-[var(--color-gs-text-muted)]">This group may have been deleted or you followed an invalid link.</p>
+        <button onClick={() => navigate('/browse')} className="px-6 py-3 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-colors">Browse Groups</button>
+      </div>
+    );
   }
 
   const isAdmin = group.adminId === user.id;
@@ -226,10 +242,20 @@ export default function GroupDetails() {
     }
   };
 
-  const handleChangePrivacy = (e) => {
-    const updated = groups.map(g => g.id === group.id ? { ...g, privacy: e.target.value } : g);
-    setGroups(updated);
-    showToast(`Privacy changed to ${e.target.value}`);
+  const handleChangePrivacy = async (e) => {
+    const newPrivacy = e.target.value;
+    // BUG-6 FIX: Persist privacy change to Supabase DB
+    const { error } = await supabase
+      .from('groups')
+      .update({ privacy: newPrivacy })
+      .eq('id', group.id);
+    if (!error) {
+      const updated = groups.map(g => g.id === group.id ? { ...g, privacy: newPrivacy } : g);
+      setGroups(updated);
+      showToast(`Privacy changed to ${newPrivacy}`, 'success');
+    } else {
+      showToast('Failed to update privacy: ' + error.message, 'error');
+    }
   };
 
   const handleSendGroupMessage = async (e) => {
@@ -688,6 +714,7 @@ export default function GroupDetails() {
                  </div>
                )}
                {/* Mock other members */}
+               {/* Other members */}
                {students && students.length > 0 ? Array.from({length: isMember ? group.members - 1 : group.members }).map((_, i) => {
                   const student = students[i % students.length];
                   const FactionColor = factions[student.faction]?.color || 'text-gray-500';
@@ -710,8 +737,9 @@ export default function GroupDetails() {
                    </div>
                   );
                }) : (
+                 // UI-2 FIX: Use loading flag to differentiate between loading and empty
                  <div className="px-2 py-4 text-center text-sm text-[var(--color-gs-text-muted)]">
-                   Loading members...
+                   {loading ? 'Loading members...' : 'No other members yet.'}
                  </div>
                )}
             </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate, useOutletContext } from 'react-router-dom';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import BrowseGroups from './components/BrowseGroups';
 import AISuggestions from './components/AISuggestions';
@@ -55,6 +55,11 @@ const ProtectedLayout = () => {
     return <Navigate to="/login" replace />;
   }
 
+  // Ensure users with incomplete profiles are redirected to onboarding
+  if (!user.onboardingComplete) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   return (
     <div className="flex bg-gs-bg min-h-screen">
       <Sidebar />
@@ -72,7 +77,9 @@ const AuthLayout = () => {
 
   if (isInitializingAuth) return null;
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    // New users who haven't filled in their profile yet → send to onboarding
+    // Returning users with a complete profile → send to dashboard
+    return <Navigate to={user.onboardingComplete ? '/dashboard' : '/onboarding'} replace />;
   }
   
   return <Outlet />;
@@ -85,9 +92,14 @@ export default function GroupSyncApp() {
     <BrowserRouter>
       <div className={`min-h-screen text-gs-text-main font-sans selection:bg-gs-cyan selection:text-gs-text-main bg-gs-bg theme-${theme}`}>
         {toast && (
-          <div className="fixed bottom-4 right-4 z-50 animate-[slideIn_0.3s_ease-out] bg-gs-card border border-gs-border p-4 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.5)] flex items-center gap-3">
-            <CheckCircle className="text-gs-green w-5 h-5" />
-            <p>{toast.message}</p>
+          <div className={`fixed bottom-4 right-4 z-50 animate-[slideIn_0.3s_ease-out] bg-gs-card p-4 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.5)] flex items-center gap-3 border ${
+            toast.type === 'error' ? 'border-red-500/50' : 'border-gs-border'
+          }`}>
+            {toast.type === 'error'
+              ? <XCircle className="text-red-400 w-5 h-5 shrink-0" />
+              : <CheckCircle className="text-gs-green w-5 h-5 shrink-0" />
+            }
+            <p className={toast.type === 'error' ? 'text-red-300' : ''}>{toast.message}</p>
           </div>
         )}
 
@@ -117,11 +129,13 @@ export default function GroupSyncApp() {
             <Route path="/about" element={<About />} />
           </Route>
 
-          {/* Auth Routes */}
+          {/* Auth Routes - Login only (signup manages its own redirects) */}
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
           </Route>
+
+          {/* Signup - standalone, manages its own session/redirect logic */}
+          <Route path="/signup" element={<SignupPage />} />
 
           {/* Onboarding */}
           <Route path="/onboarding" element={
@@ -141,16 +155,40 @@ export default function GroupSyncApp() {
             <Route path="/profile" element={<UserProfile />} />
           </Route>
 
-          {/* 404 Redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 404 Page */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </div>
     </BrowserRouter>
   );
 }
 
+const NotFoundPage = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-gs-bg text-center p-8">
+    <div className="relative mb-8">
+      <span className="text-[120px] font-black text-gs-border select-none">404</span>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-5xl">🔭</span>
+      </div>
+    </div>
+    <h1 className="text-3xl font-bold text-gs-text-main mb-3">Page Not Found</h1>
+    <p className="text-gs-text-muted max-w-sm mb-8">This page doesn't exist or has been moved. Let's get you back on track.</p>
+    <a href="/" className="px-6 py-3 bg-gs-cyan text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_15px_rgba(0,212,255,0.3)]">
+      Go Home
+    </a>
+  </div>
+);
+
 const HomeWrapper = () => {
   const { onNavigate } = useOutletContext();
+  const { user, isInitializingAuth } = useAppContext();
+
+  // Handle Google OAuth redirect landing on homepage
+  // After OAuth, Supabase returns to '/', so we need to forward them appropriately
+  if (!isInitializingAuth && user) {
+    return <Navigate to={user.onboardingComplete ? '/dashboard' : '/onboarding'} replace />;
+  }
+
   return <Home onNavigate={onNavigate} />;
 };
 

@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
-import { Zap, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Zap, Mail, Lock, ArrowRight, X } from 'lucide-react';
 import supabase from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../context/AppContext';
 
 export default function Login({ onNavigate, onLogin }) {
   const navigate = useNavigate();
+  const { checkAuth, showToast } = useAppContext();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -19,40 +24,97 @@ export default function Login({ onNavigate, onLogin }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.email && formData.password) {
-      setIsSubmitting(true);
-      setError('');
-      try {
-        const { data, error: authError } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password
-        });
-        if (authError) throw authError;
-
-        if (data) {
-          onLogin();
-          // Let AuthLayout handle the navigation to dashboard
-        }
-      } catch (err) {
-        setIsSubmitting(false);
-        setError(err.message || 'Failed to sign in.');
-      }
-    } else {
+    if (!formData.email || !formData.password) {
       setError('Please fill in all fields.');
+      return;
+    }
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password
+      });
+
+      if (authError) {
+        // Friendly messages for common errors
+        const msg = authError.message?.toLowerCase() || '';
+        if (msg.includes('email not confirmed')) {
+          setError('Your email is not confirmed yet. Please check your inbox and click the confirmation link.');
+        } else if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
+          setError('Incorrect email or password. Please try again.');
+        } else if (msg.includes('user not found')) {
+          setError('No account found with this email. Please sign up first.');
+        } else {
+          setError(authError.message || 'Sign in failed. Please try again.');
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (data?.user) {
+        onLogin();
+        // Refresh auth state to determine onboarding status, then redirect
+        const { data: sessionData } = await supabase.auth.getSession();
+        const userId = sessionData?.session?.user?.id;
+        if (userId) {
+          // BUG-1 FIX: Must select college and skills, not just name
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('name, college, skills')
+            .eq('id', userId)
+            .single();
+          const isProfileComplete = !!(
+            profileData?.name?.trim() && 
+            profileData?.college?.trim() && 
+            (profileData?.skills && Array.isArray(profileData.skills) && profileData.skills.length > 0)
+          );
+          navigate(isProfileComplete ? '/dashboard' : '/onboarding', { replace: true });
+        } else {
+          navigate('/onboarding', { replace: true });
+        }
+      }
+    } catch (err) {
+      setIsSubmitting(false);
+      // "Failed to fetch" is a network-level error (no connection / Supabase unreachable)
+      if (err.message?.toLowerCase().includes('failed to fetch') || err.name === 'TypeError') {
+        setError('Network error: Unable to reach the server. Please check your internet connection and try again.');
+      } else {
+        setError(err.message || 'An unexpected error occurred. Please try again.');
+      }
     }
   };
 
   const handleGoogleLogin = async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: window.location.origin }
       });
-      if (error) {
-        setError(error.message);
-      }
+      if (error) setError(error.message);
     } catch (err) {
       setError('An unexpected error occurred during Google sign-in.');
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.trim()) {
+      showToast('Please enter your email address.', 'error');
+      return;
+    }
+    setIsSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+        redirectTo: `${window.location.origin}/login`
+      });
+      if (error) throw error;
+      showToast('Password reset email sent! Check your inbox.', 'success');
+      setShowForgotPassword(false);
+      setForgotEmail('');
+    } catch (err) {
+      showToast(err.message || 'Failed to send reset email.', 'error');
+    } finally {
+      setIsSendingReset(false);
     }
   };
 
@@ -99,7 +161,7 @@ export default function Login({ onNavigate, onLogin }) {
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-sm text-gs-text-muted">Password</label>
-              <button type="button" className="text-xs text-gs-cyan hover:underline">Forgot password?</button>
+              <button type="button" onClick={() => setShowForgotPassword(true)} className="text-xs text-gs-cyan hover:underline">Forgot password?</button>
             </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -149,6 +211,38 @@ export default function Login({ onNavigate, onLogin }) {
           </button>
         </p>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-gs-card border border-gs-border rounded-2xl p-8 max-w-sm w-full shadow-2xl animate-[slideIn_0.2s_ease-out]">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gs-text-main">Reset Password</h3>
+              <button onClick={() => setShowForgotPassword(false)} className="text-gs-text-muted hover:text-gs-text-main"><X size={20} /></button>
+            </div>
+            <p className="text-gs-text-muted text-sm mb-5">Enter your email and we'll send a reset link.</p>
+            <div className="relative mb-4">
+              <Mail size={18} className="absolute left-3 top-3.5 text-gs-text-muted" />
+              <input
+                type="email"
+                value={forgotEmail}
+                onChange={e => setForgotEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleForgotPassword()}
+                className="w-full bg-gs-bg border border-gs-border rounded-lg pl-10 p-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main"
+                placeholder="your@email.com"
+                autoFocus
+              />
+            </div>
+            <button
+              onClick={handleForgotPassword}
+              disabled={isSendingReset}
+              className="w-full py-3 bg-gs-cyan text-[#0f172a] font-bold rounded-lg hover:bg-cyan-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSendingReset ? 'Sending...' : 'Send Reset Link'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

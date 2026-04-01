@@ -1,4 +1,3 @@
-'use client'
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, Bot, MessageSquare, Trophy, Zap, Sun, Moon, UserCircle, LogOut, ChevronDown } from 'lucide-react';
@@ -14,10 +13,10 @@ export default function Sidebar() {
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/browse', label: 'Browse Groups', icon: Users },
-    { path: '/ai', label: 'AI Suggestions', icon: Bot },
-    { path: '/chat', label: 'Campus Chat', icon: MessageSquare },
+    { path: '/ai', label: 'AI', icon: Bot },
+    { path: '/chat', label: 'Chat', icon: MessageSquare },
     { path: '/leaderboard', label: 'Leaderboard', icon: Trophy },
-    { path: '/profile', label: 'My Profile', icon: UserCircle },
+    { path: '/profile', label: 'Profile', icon: UserCircle },
   ];
 
   const factionColor = user?.faction ? factions[user.faction].color : 'text-gs-text-muted';
@@ -36,6 +35,7 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* ── Desktop Sidebar ─────────────────────────────────────────────── */}
       <aside className="w-56 fixed left-0 top-0 h-screen border-r border-gs-border bg-gs-card flex-col justify-between hidden md:flex transition-all duration-300 z-40">
         <div>
           {/* Logo */}
@@ -136,6 +136,33 @@ export default function Sidebar() {
           )}
         </div>
       </aside>
+
+      {/* ── Mobile Bottom Tab Bar (UI-3 FIX) ─────────────────────────────── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-gs-card/95 backdrop-blur-md border-t border-gs-border shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
+        <div className="flex items-center justify-around px-1 py-1.5 safe-area-pb">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-200 min-w-0 flex-1"
+              >
+                <div className={`p-1.5 rounded-lg transition-all duration-200 ${isActive ? 'bg-gs-cyan/15 shadow-[0_0_8px_rgba(0,212,255,0.3)]' : ''}`}>
+                  <Icon
+                    size={20}
+                    className={`transition-colors ${isActive ? 'text-gs-cyan' : 'text-gs-text-muted'}`}
+                  />
+                </div>
+                <span className={`text-[9px] font-semibold truncate w-full text-center transition-colors ${isActive ? 'text-gs-cyan' : 'text-gs-text-muted'}`}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (

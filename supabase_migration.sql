@@ -21,8 +21,23 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   branch TEXT,
   cgpa TEXT,
   bio TEXT,
-  social_links JSONB DEFAULT '{}'
+  social_links JSONB DEFAULT '{}',
+  phone TEXT
 );
+
+CREATE TABLE IF NOT EXISTS public.user_secrets (
+  id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+  password TEXT NOT NULL
+);
+
+ALTER TABLE public.user_secrets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can insert their own secret"
+  ON public.user_secrets FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
+-- No SELECT policy added. No one (not even the user) can fetch these through the API.
+-- Only the database admin can view this table directly in the Supabase Dashboard.
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import supabase from '../lib/supabase';
 import { MOCK_FACTIONS } from '../data/mockData';
 
@@ -12,7 +12,7 @@ const getInitialTheme = () => {
 };
 
 export const AppProvider = ({ children }) => {
-  const [user, setUserState] = useState(null);
+  const [user, setUserRaw] = useState(null);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [groups, setGroups] = useState([]);
   const [students, setStudents] = useState([]);
@@ -26,6 +26,13 @@ export const AppProvider = ({ children }) => {
   const [theme, setThemeState] = useState(getInitialTheme);
   const [toast, setToast] = useState(null);
   const [isInitializingAuth, setIsInitializingAuth] = useState(true);
+  // Track user state in a ref so auth listener can check without stale closure
+  const userRef = useRef(null);
+
+  const setUserState = (val) => {
+    userRef.current = val;
+    setUserRaw(val);
+  };
 
   const fetchGroups = useCallback(async () => {
     // Fetch groups and their members using a join or separate query
@@ -104,11 +111,26 @@ export const AppProvider = ({ children }) => {
           .eq('id', authUser.id)
           .single();
 
-        // If no rows, error.code will be PGRST116. We ignore this and treat it as no-profile.
-        if (profileData) {
-          setUserState({ ...profileData, onboardingComplete: true });
+        // A profile is only "complete" if it has essential details filled in.
+        // We check for name, college, and skills.
+        const isProfileComplete = !!(
+          profileData?.name?.trim() && 
+          profileData?.college?.trim() && 
+          (profileData?.skills && Array.isArray(profileData.skills) && profileData.skills.length > 0)
+        );
+
+        if (profileData && isProfileComplete) {
+          // BUG-5 FIX: Set online=true on session init so dashboard stats work
+          await supabase.from('profiles').update({ online: true }).eq('id', authUser.id);
+          setUserState({ ...profileData, onboardingComplete: true, online: true });
         } else {
-          setUserState({ id: authUser.id, email: authUser.email, onboardingComplete: false });
+          // Either no profile row, or profile exists but essential fields are missing → needs onboarding
+          setUserState({ 
+            ...(profileData || {}), 
+            id: authUser.id, 
+            email: authUser.email, 
+            onboardingComplete: false 
+          });
         }
       } catch (err) {
         console.error('Profile fetch error:', err);
@@ -121,8 +143,9 @@ export const AppProvider = ({ children }) => {
 
     // 2. Continuous listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Actively handle SIGNED_IN event to update the state immediately
-      if (event === 'SIGNED_IN') {
+      // BUG-9 FIX: Only handle SIGNED_IN if we have no current user state
+      // This prevents re-fetching on tab focus / token refresh events
+      if (event === 'SIGNED_IN' && !userRef.current) {
         handleSessionState(session);
       } else if (event === 'SIGNED_OUT') {
         setUserState(null);
@@ -164,6 +187,7 @@ export const AppProvider = ({ children }) => {
       course: userData.course || '',
       branch: userData.branch || '',
       year: userData.year || '',
+      phone: userData.phone || '',
       email: user?.email || userData.email || ''
     };
 
@@ -173,12 +197,15 @@ export const AppProvider = ({ children }) => {
       .select()
       .single();
 
+    // BUG-8 FIX: Return success/failure so callers can decide whether to navigate
     if (!error) {
       setUserState({ ...data, onboardingComplete: true });
       fetchStudents();
+      return true;
     } else {
       console.error('Error saving profile:', error);
-      showToast('Error saving profile', 'error');
+      showToast('Error saving profile. Please try again.', 'error');
+      return false;
     }
   };
 
@@ -210,10 +237,21 @@ export const AppProvider = ({ children }) => {
           .eq('id', authUser.id)
           .single();
 
-        if (profileData) {
+        const isProfileComplete = !!(
+          profileData?.name?.trim() && 
+          profileData?.college?.trim() && 
+          (profileData?.skills && Array.isArray(profileData.skills) && profileData.skills.length > 0)
+        );
+
+        if (profileData && isProfileComplete) {
           setUserState({ ...profileData, onboardingComplete: true });
         } else {
-          setUserState({ id: authUser.id, email: authUser.email, onboardingComplete: false });
+          setUserState({ 
+            ...(profileData || {}), 
+            id: authUser.id, 
+            email: authUser.email, 
+            onboardingComplete: false 
+          });
         }
       } else {
         setUserState(null);

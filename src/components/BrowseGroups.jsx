@@ -15,43 +15,49 @@ export default function BrowseGroups() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newGroup, setNewGroup] = useState({ name: '', event: '', type: 'Hackathon', description: '', maxMembers: 4, skills: [], privacy: 'public' });
 
-  const dummyGroups = [
+  // BUG-2/3 FIX: Fallback groups shown ONLY when the database has no groups yet.
+  // These use IDs that won't conflict with real Supabase rows (which are integers),
+  // and the 'View Group' button routes to /browse instead of /group/:id for dummies.
+  const FALLBACK_GROUPS = groups.length === 0 ? [
     {
-       id: 'dummy-1',
+       id: '__fallback-1',
        name: 'AI Innovators',
        event: 'Tech Fest 2026',
        type: 'Technical',
-       description: 'A group for AI enthusiasts to collaborate on cutting edge projects and build innovative AI solutions.',
+       description: 'A group for AI enthusiasts to collaborate on cutting edge projects.',
        skills: ['Python', 'Machine Learning', 'AI & ML'],
        members: 2,
        maxMembers: 5,
-       privacy: 'public'
+       privacy: 'public',
+       isFallback: true
     },
     {
-       id: 'dummy-2',
+       id: '__fallback-2',
        name: 'Design Mavericks',
        event: 'UI/UX Hackathon',
        type: 'Cultural',
-       description: 'Looking for creative minds to design the next big thing in education technology.',
+       description: 'Looking for creative minds to design the next big thing in EdTech.',
        skills: ['Figma', 'UI/UX', 'Graphic Design'],
        members: 1,
        maxMembers: 4,
-       privacy: 'public'
+       privacy: 'public',
+       isFallback: true
     },
     {
-       id: 'dummy-3',
+       id: '__fallback-3',
        name: 'Blockchain Builders',
        event: 'Web3 Summit',
        type: 'Hackathon',
-       description: 'Building decentralized tracking applications for logistics and supply chain management.',
+       description: 'Building decentralized tracking applications for logistics.',
        skills: ['Solidity', 'Web3', 'React'],
        members: 3,
        maxMembers: 6,
-       privacy: 'public'
+       privacy: 'public',
+       isFallback: true
     }
-  ];
+  ] : [];
 
-  const allGroups = [...dummyGroups, ...groups];
+  const allGroups = [...FALLBACK_GROUPS, ...groups];
 
   const filteredGroups = allGroups.filter(g => 
     g.privacy !== 'private' &&
@@ -225,12 +231,16 @@ export default function BrowseGroups() {
                 
                 <button 
                   onClick={() => {
+                    if (group.isFallback) {
+                      showToast('This is a sample group. Create or join a real group!', 'info');
+                      return;
+                    }
                     setSelectedGroupId(group.id);
                     navigate(`/group/${group.id}`);
                   }}
                   className={"w-full py-3 rounded-xl font-bold transition-all bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] hover:border-[var(--color-gs-cyan)] hover:text-[var(--color-gs-cyan)]"}
                 >
-                  View Group
+                  {group.isFallback ? 'Sample Group' : 'View Group'}
                 </button>
               </div>
             </div>

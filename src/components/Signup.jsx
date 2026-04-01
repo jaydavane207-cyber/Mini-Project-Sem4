@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronUp, Plus, X
 } from 'lucide-react';
 import supabase from '../lib/supabase';
+import { useAppContext } from '../context/AppContext';
 
 const COLLEGES = [
   'IIT Bombay', 'IIT Delhi', 'IIT Madras', 'IIT Kanpur', 'IIT Kharagpur',
@@ -196,20 +197,22 @@ function Step1({ data, onChange, onNext }) {
     return (
       <div className="space-y-5 animate-[slideIn_0.3s_ease-out]">
         <div>
-          <h2 className="text-3xl font-bold text-gs-text-main">Check Your Email</h2>
-          <p className="text-gs-text-muted mt-1">We sent a confirmation email to <span className="text-gs-cyan font-medium">{data.email}</span></p>
+          <h2 className="text-3xl font-bold text-gs-text-main">Verify Your Email</h2>
+          <p className="text-gs-text-muted mt-1">
+            We sent a 6-digit code to <span className="text-gs-cyan font-medium">{data.email}</span>
+          </p>
         </div>
 
-        {/* Primary: Link-based confirmation */}
-        <div className="p-4 bg-gs-cyan/5 border border-gs-cyan/20 rounded-xl space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-gs-cyan/10 border border-gs-cyan/30 flex items-center justify-center shrink-0 mt-0.5">
-              <Mail size={16} className="text-gs-cyan" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gs-text-main">Click the link in your email</p>
-              <p className="text-xs text-gs-text-muted mt-1">Open the email from <strong>Supabase</strong> and click <strong>"Confirm your mail"</strong>. Once confirmed, come back and click the button below.</p>
-            </div>
+        {/* Info box */}
+        <div className="p-4 bg-gs-cyan/5 border border-gs-cyan/20 rounded-xl flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-gs-cyan/10 border border-gs-cyan/30 flex items-center justify-center shrink-0 mt-0.5">
+            <Mail size={16} className="text-gs-cyan" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gs-text-main">Check your inbox</p>
+            <p className="text-xs text-gs-text-muted mt-1">
+              Enter the 6-digit code from the GroupSync verification email. If you received a link instead, click it then use the button below.
+            </p>
           </div>
         </div>
 
@@ -219,41 +222,9 @@ function Step1({ data, onChange, onNext }) {
           </div>
         )}
 
-        {/* Primary action: for link-based flow */}
-        <button
-          onClick={async () => {
-            setLoading(true);
-            setError('');
-            try {
-              // Check if user has confirmed (session exists after link click)
-              const { data: sessionData } = await supabase.auth.getSession();
-              if (sessionData?.session?.user) {
-                onNext();
-              } else {
-                setError('Email not confirmed yet. Please click the link in your email first, then try again.');
-              }
-            } catch (err) {
-              setError(err.message || 'Could not verify confirmation.');
-            } finally {
-              setLoading(false);
-            }
-          }}
-          disabled={loading}
-          className="w-full py-3 bg-gs-cyan text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_15px_rgba(0,212,255,0.3)] flex items-center justify-center gap-2 disabled:opacity-40"
-        >
-          {loading ? 'Checking...' : "I've Confirmed My Email → Continue"} {!loading && <Check size={18} />}
-        </button>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-gs-border" />
-          <span className="text-xs text-gs-text-muted">or enter OTP if you received one</span>
-          <div className="flex-1 h-px bg-gs-border" />
-        </div>
-
-        {/* Secondary: 6-box OTP input */}
+        {/* OTP Input - PRIMARY */}
         <div>
-          <label className="block text-sm text-gs-text-muted mb-2">6-Digit Code (if received)</label>
+          <label className="block text-sm text-gs-text-muted mb-3 text-center">6-Digit Verification Code</label>
           <div className="flex gap-2 justify-center">
             {otp.map((digit, index) => (
               <input
@@ -267,7 +238,7 @@ function Step1({ data, onChange, onNext }) {
                 onKeyDown={e => handleKeyDown(index, e)}
                 onFocus={e => e.target.select()}
                 className={[
-                  'w-11 h-12 text-center text-xl font-bold rounded-xl border bg-gs-bg outline-none transition-all duration-200',
+                  'w-12 h-14 text-center text-2xl font-bold rounded-xl border bg-gs-bg outline-none transition-all duration-200',
                   digit
                     ? 'border-gs-cyan text-gs-cyan shadow-[0_0_8px_rgba(0,212,255,0.35)]'
                     : 'border-gs-border text-gs-text-main focus:border-gs-cyan'
@@ -275,30 +246,59 @@ function Step1({ data, onChange, onNext }) {
               />
             ))}
           </div>
-          <div className="flex items-center justify-between mt-3">
-            <button
-              type="button"
-              onClick={handleResendOtp}
-              className="text-xs text-gs-cyan hover:underline"
-            >
-              Resend email
-            </button>
-            <button
-              onClick={handleVerifyCode}
-              disabled={otp.join('').length !== 6 || loading}
-              className="text-xs px-4 py-1.5 bg-gs-cyan/10 border border-gs-cyan/40 text-gs-cyan rounded-lg hover:bg-gs-cyan/20 transition-colors disabled:opacity-40"
-            >
-              {loading ? 'Verifying...' : 'Verify Code'}
-            </button>
-          </div>
         </div>
-        
+
+        {/* Verify Button */}
         <button
-          onClick={() => setIsVerifying(false)}
-          className="w-full py-2 text-sm text-gs-text-muted hover:text-gs-text-main transition-colors"
+          onClick={handleVerifyCode}
+          disabled={otp.join('').length !== 6 || loading}
+          className="w-full py-3 bg-gs-cyan text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_15px_rgba(0,212,255,0.3)] flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          ← Use a different email
+          {loading ? 'Verifying...' : 'Verify & Continue'} {!loading && <Check size={18} />}
         </button>
+
+        {/* Secondary: link-based flow */}
+        <div className="text-center space-y-2">
+          <p className="text-xs text-gs-text-muted">Clicked the email link instead?</p>
+          <button
+            onClick={async () => {
+              setLoading(true);
+              setError('');
+              try {
+                const { data: sessionData } = await supabase.auth.getSession();
+                if (sessionData?.session?.user) {
+                  onNext();
+                } else {
+                  setError('Email not confirmed yet. Please enter the OTP code above or click the link in your email.');
+                }
+              } catch (err) {
+                setError(err.message || 'Could not verify confirmation.');
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            className="text-xs text-gs-cyan hover:underline disabled:opacity-50"
+          >
+            {loading ? 'Checking...' : 'I already clicked the link → Continue'}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between pt-1">
+          <button
+            type="button"
+            onClick={handleResendOtp}
+            className="text-xs text-gs-cyan hover:underline"
+          >
+            Resend verification email
+          </button>
+          <button
+            onClick={() => setIsVerifying(false)}
+            className="text-xs text-gs-text-muted hover:text-gs-text-main transition-colors"
+          >
+            ← Use a different email
+          </button>
+        </div>
       </div>
     );
   }
@@ -413,14 +413,15 @@ function Step1({ data, onChange, onNext }) {
             Google
           </button>
           {/* Microsoft */}
-          <button className="flex items-center justify-center gap-2 py-3 bg-gs-bg border border-gs-border rounded-xl hover:border-gs-violet transition-colors text-sm font-medium text-gs-text-main">
+          {/* Microsoft - Coming Soon */}
+          <button disabled type="button" className="flex items-center justify-center gap-2 py-3 bg-gs-bg border border-gs-border rounded-xl text-sm font-medium text-gs-text-muted opacity-50 cursor-not-allowed" title="Coming Soon">
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#F35325" d="M11.4 2H2v9.4h9.4V2z"/>
               <path fill="#81BC06" d="M22 2h-9.4v9.4H22V2z"/>
               <path fill="#05A6F0" d="M11.4 12.6H2V22h9.4v-9.4z"/>
               <path fill="#FFBA08" d="M22 12.6h-9.4V22H22v-9.4z"/>
             </svg>
-            Microsoft
+            Soon
           </button>
         </div>
       </div>
@@ -486,9 +487,11 @@ function Step2({ data, onChange, onNext, onBack }) {
 
 
       <div className="flex gap-3 pt-2">
-        <button onClick={onBack} className="flex-1 py-3 border border-gs-border rounded-xl text-gs-text-main hover:bg-gs-bg transition-colors flex items-center justify-center gap-2 font-medium">
-          <ArrowLeft size={18} /> Back
-        </button>
+        {onBack && (
+          <button onClick={onBack} className="flex-1 py-3 border border-gs-border rounded-xl text-gs-text-main hover:bg-gs-bg transition-colors flex items-center justify-center gap-2 font-medium">
+            <ArrowLeft size={18} /> Back
+          </button>
+        )}
         <button onClick={onNext} disabled={!isValid}
           className="flex-1 py-3 bg-gs-cyan text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
           Continue <ArrowRight size={18} />
@@ -520,7 +523,7 @@ function Step3({ data, onChange, onNext, onBack }) {
           <input type="text" value={collegeSearch}
             onChange={e => { setCollegeSearch(e.target.value); setShowCollegeList(true); onChange('college', e.target.value); }}
             onFocus={() => setShowCollegeList(true)}
-            className="w-full bg-gs-bg border border-gs-border rounded-xl pl-10 pr-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-"
+            className="w-full bg-gs-bg border border-gs-border rounded-xl pl-10 pr-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main"
             placeholder="Search your college..." />
           {showCollegeList && filteredColleges.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-gs-card border border-gs-border rounded-xl overflow-hidden shadow-2xl z-20 max-h-48 overflow-y-auto">
@@ -541,14 +544,14 @@ function Step3({ data, onChange, onNext, onBack }) {
         <div>
           <label className="block text-sm text-gs-text-muted mb-2">Student ID / Roll No.</label>
           <input type="text" value={data.studentId} onChange={e => onChange('studentId', e.target.value)}
-            className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-"
+            className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main"
             placeholder="e.g. 21CS001" />
         </div>
         {/* Course */}
         <div>
           <label className="block text-sm text-gs-text-muted mb-2">Degree <span className="text-red-400">*</span></label>
           <select value={data.course} onChange={e => onChange('course', e.target.value)}
-            className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-">
+            className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main">
             <option value="">Select...</option>
             {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -559,7 +562,7 @@ function Step3({ data, onChange, onNext, onBack }) {
       <div>
         <label className="block text-sm text-gs-text-muted mb-2">Branch / Department</label>
         <select value={data.branch} onChange={e => onChange('branch', e.target.value)}
-          className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-">
+          className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main">
           <option value="">Select branch...</option>
           {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
@@ -570,7 +573,7 @@ function Step3({ data, onChange, onNext, onBack }) {
         <div>
           <label className="block text-sm text-gs-text-muted mb-2">Year <span className="text-red-400">*</span></label>
           <select value={data.year} onChange={e => onChange('year', e.target.value)}
-            className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-">
+            className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main">
             <option value="">Year</option>
             {['1st', '2nd', '3rd', '4th', '5th', 'Grad'].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
@@ -601,12 +604,12 @@ function Step3({ data, onChange, onNext, onBack }) {
           CGPA / Percentage <span className="text-xs text-gs-text-muted ml-1">(optional · <Lock size={10} className="inline" /> private)</span>
         </label>
         <input type="text" value={data.cgpa} onChange={e => onChange('cgpa', e.target.value)}
-          className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-"
+          className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main"
           placeholder="e.g. 8.5 or 89%" />
       </div>
 
       <div className="flex gap-3 pt-2">
-        <button onClick={onBack} className="flex-1 py-3 border border-gs-border rounded-xl text-gs- hover:bg-gs-bg transition-colors flex items-center justify-center gap-2 font-medium">
+        <button onClick={onBack} className="flex-1 py-3 border border-gs-border rounded-xl text-gs-text-main hover:bg-gs-bg transition-colors flex items-center justify-center gap-2 font-medium">
           <ArrowLeft size={18} /> Back
         </button>
         <button onClick={onNext} disabled={!isValid}
@@ -657,7 +660,7 @@ function Step4({ data, onChange, onSubmit, onBack, isSubmitting, error }) {
   return (
     <div className="space-y-5 animate-[slideIn_0.3s_ease-out]">
       <div>
-        <h2 className="text-3xl font-bold text-gs-">Interests & Preferences</h2>
+        <h2 className="text-3xl font-bold text-gs-text-main">Interests & Preferences</h2>
         <p className="text-gs-text-muted mt-1">Personalize your GroupSync experience.</p>
       </div>
 
@@ -697,13 +700,13 @@ function Step4({ data, onChange, onSubmit, onBack, isSubmitting, error }) {
               onChange={e => { setSkillInput(e.target.value); setShowSuggestions(true); }}
               onKeyDown={e => { if (e.key === 'Enter' && skillInput.trim()) { e.preventDefault(); addSkill(skillInput); } }}
               onFocus={() => setShowSuggestions(true)}
-              className="w-full bg-transparent outline-none text-sm text-gs- placeholder-gs-text-muted"
+              className="w-full bg-transparent outline-none text-sm text-gs-text-main placeholder-gs-text-muted"
               placeholder="Type a skill and press Enter..." />
             {showSuggestions && suggestions.length > 0 && skillInput && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-gs-card border border-gs-border rounded-xl overflow-hidden shadow-2xl z-20">
                 {suggestions.map(s => (
                   <button key={s} type="button" onMouseDown={() => addSkill(s)}
-                    className="w-full text-left px-4 py-2 text-sm text-gs- hover:bg-gs-bg transition-colors flex items-center gap-2">
+                    className="w-full text-left px-4 py-2 text-sm text-gs-text-main hover:bg-gs-bg transition-colors flex items-center gap-2">
                     <Plus size={14} className="text-gs-cyan" /> {s}
                   </button>
                 ))}
@@ -717,7 +720,7 @@ function Step4({ data, onChange, onSubmit, onBack, isSubmitting, error }) {
       <div>
         <label className="block text-sm text-gs-text-muted mb-2">Bio / About Me</label>
         <textarea value={data.bio} onChange={e => onChange('bio', e.target.value)} rows={3}
-          className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs- resize-none text-sm"
+          className="w-full bg-gs-bg border border-gs-border rounded-xl px-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main resize-none text-sm"
           placeholder="Tell other students about yourself..." />
       </div>
 
@@ -735,7 +738,7 @@ function Step4({ data, onChange, onSubmit, onBack, isSubmitting, error }) {
             <div key={key} className="relative">
               <Icon size={16} className={"absolute left-3 top-3.5 " + color} />
               <input type="text" value={data.socialLinks[key] || ''} onChange={e => onChange('socialLinks', { ...data.socialLinks, [key]: e.target.value })}
-                className="w-full bg-gs-bg border border-gs-border rounded-xl pl-10 pr-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs- text-sm"
+                className="w-full bg-gs-bg border border-gs-border rounded-xl pl-10 pr-4 py-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main text-sm"
                 placeholder={placeholder} />
             </div>
           ))}
@@ -744,7 +747,7 @@ function Step4({ data, onChange, onSubmit, onBack, isSubmitting, error }) {
 
       {/* Notification Preferences */}
       <div className="bg-gs-bg border border-gs-border rounded-xl p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-gs- flex items-center gap-2"><Bell size={15} className="text-gs-cyan" /> Notifications</h3>
+        <h3 className="text-sm font-semibold text-gs-text-main flex items-center gap-2"><Bell size={15} className="text-gs-cyan" /> Notifications</h3>
         {[
           { key: 'events', label: 'New event announcements' },
           { key: 'teamInvites', label: 'Team invitations' },
@@ -759,7 +762,7 @@ function Step4({ data, onChange, onSubmit, onBack, isSubmitting, error }) {
 
       {/* Privacy Settings */}
       <div className="bg-gs-bg border border-gs-border rounded-xl p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-gs- flex items-center gap-2"><Shield size={15} className="text-[var(--color-gs-green)]" /> Privacy</h3>
+        <h3 className="text-sm font-semibold text-gs-text-main flex items-center gap-2"><Shield size={15} className="text-[var(--color-gs-green)]" /> Privacy</h3>
         {[
           { key: 'publicProfile', label: 'Public profile' },
           { key: 'showSkills', label: 'Show skills to others' },
@@ -773,7 +776,7 @@ function Step4({ data, onChange, onSubmit, onBack, isSubmitting, error }) {
       </div>
 
       <div className="flex gap-3 pt-2">
-        <button onClick={onBack} disabled={isSubmitting} className="flex-1 py-3 border border-gs-border rounded-xl text-gs- hover:bg-gs-bg transition-colors flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+        <button onClick={onBack} disabled={isSubmitting} className="flex-1 py-3 border border-gs-border rounded-xl text-gs-text-main hover:bg-gs-bg transition-colors flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
           <ArrowLeft size={18} /> Back
         </button>
         <button onClick={onSubmit} disabled={isSubmitting}
@@ -788,8 +791,8 @@ function Step4({ data, onChange, onSubmit, onBack, isSubmitting, error }) {
 // ─── Main Signup Component ────────────────────────────────────────────────────
 const STEP_LABELS = ['Account', 'Personal', 'Academic', 'Preferences'];
 
-export default function Signup({ onNavigate }) {
-  const [step, setStep] = useState(1);
+export default function Signup({ onNavigate, initialStep = 1 }) {
+  const [step, setStep] = useState(initialStep);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -808,6 +811,7 @@ export default function Signup({ onNavigate }) {
     privacy: { publicProfile: true, showSkills: true, showEmail: false },
   });
 
+  const { checkAuth } = useAppContext();
   const update = (key, value) => setFormData(prev => ({ ...prev, [key]: value }));
 
   const handleSubmit = async () => {
@@ -818,17 +822,21 @@ export default function Signup({ onNavigate }) {
       if (sessionError) throw sessionError;
 
       const userId = sessionData?.session?.user?.id;
+      // Use email from form data OR fall back to the authenticated session's email
+      const userEmail = formData.email || sessionData?.session?.user?.email || '';
+
       if (userId) {
-        // Update user profile name
+        // Update user profile name in auth metadata
         await supabase.auth.updateUser({ data: { name: formData.fullName } });
 
-        // Insert profile data
+        // Upsert full profile data
         const { error: dbError } = await supabase
           .from('profiles')
-          .insert([{
+          .upsert([{
             id: userId,
-            email: formData.email,
+            email: userEmail,
             dob: formData.dob,
+            gender: formData.gender,
             college: formData.college,
             course: formData.course,
             branch: formData.branch,
@@ -838,19 +846,29 @@ export default function Signup({ onNavigate }) {
             skills: formData.skills,
             interests: formData.interests,
             name: formData.fullName,
-            avatar: formData.avatar
-          }]);
-          
+            avatar: formData.avatar,
+            year: formData.year,
+            semester: formData.semester,
+            grad_year: formData.gradYear,
+            student_id: formData.studentId,
+            notifications: formData.notifications,
+            privacy: formData.privacy,
+            online: true
+          }], { onConflict: 'id' });
+
         if (dbError) throw dbError;
+
+        // Refresh auth state so user.onboardingComplete becomes true, then go to dashboard
+        await checkAuth();
+        onNavigate('dashboard');
       }
-      
-      onNavigate('login');
     } catch (err) {
-      setSubmitError(err.message || 'Failed to create account. Please try again.');
+      setSubmitError(err.message || 'Failed to save profile. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full bg-gs-bg p-4 relative overflow-hidden">
@@ -894,7 +912,7 @@ export default function Signup({ onNavigate }) {
 
         {/* Step Content */}
         {step === 1 && <Step1 data={formData} onChange={update} onNext={() => setStep(2)} />}
-        {step === 2 && <Step2 data={formData} onChange={update} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
+        {step === 2 && <Step2 data={formData} onChange={update} onNext={() => setStep(3)} onBack={initialStep >= 2 ? null : () => setStep(1)} />}
         {step === 3 && <Step3 data={formData} onChange={update} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
         {step === 4 && <Step4 data={formData} onChange={update} onSubmit={handleSubmit} onBack={() => setStep(3)} isSubmitting={isSubmitting} error={submitError} />}
 

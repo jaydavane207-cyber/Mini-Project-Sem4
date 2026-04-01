@@ -57,7 +57,8 @@ export default function DashboardPage() {
           <h1 className="text-4xl font-bold">Welcome back, {user.name}</h1>
           <p className="text-gs-text-muted mt-2">Here is what's happening on campus today.</p>
         </div>
-        {liveStats.activeGroups === 0 && (
+        {/* UI-4 FIX: Only show seed button in development mode */}
+        {import.meta.env.DEV && liveStats.activeGroups === 0 && (
           <button 
             onClick={handleSeed}
             disabled={isSeeding}
@@ -66,6 +67,7 @@ export default function DashboardPage() {
             {isSeeding ? 'Seeding...' : 'Seed Mock Data'} <Sparkles size={18} />
           </button>
         )}
+
       </header>
 
       {/* Stat Cards */}

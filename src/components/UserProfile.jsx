@@ -28,17 +28,20 @@ const Toggle = ({ checked, onChange }) => (
 
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
 function OverviewTab({ user, factions, isEditing, formData, setFormData }) {
+  const { groups } = useAppContext();
   const f = factions[user.faction];
   const FactionIcon = f?.icon || User;
+  // UI-5 FIX: Compute real groups joined count
+  const groupsJoined = groups.filter(g => g.memberIds?.includes(user.id)).length;
 
   return (
     <div className="space-y-6">
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard value="3" label="Groups Joined" color="text-[var(--color-gs-cyan)]" />
-        <StatCard value="7" label="Events Attended" color="text-[var(--color-gs-violet)]" />
-        <StatCard value="2" label="Badges Earned" color="text-[var(--color-gs-amber)]" />
-        <StatCard value="#12" label="Leaderboard" color="text-[var(--color-gs-green)]" />
+        <StatCard value={groupsJoined} label="Groups Joined" color="text-[var(--color-gs-cyan)]" />
+        <StatCard value="—" label="Events Attended" color="text-[var(--color-gs-violet)]" />
+        <StatCard value="—" label="Badges Earned" color="text-[var(--color-gs-amber)]" />
+        <StatCard value="—" label="Leaderboard" color="text-[var(--color-gs-green)]" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
