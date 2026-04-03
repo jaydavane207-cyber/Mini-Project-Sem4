@@ -528,7 +528,7 @@ const TABS = [
 ];
 
 export default function UserProfile() {
-  const { user, setUser, factions, showToast, logout } = useAppContext();
+  const { user, setUser, updateLocalUser, factions, showToast, logout } = useAppContext();
   const [activeTab, setActiveTab] = useState('overview');
   
   const [isEditing, setIsEditing] = useState(false);
@@ -545,7 +545,7 @@ export default function UserProfile() {
     const previousUser = { ...user };
     
     // Optimistic update
-    setUser({ ...user, ...formData });
+    updateLocalUser({ ...user, ...formData });
 
     // API Call
     try {
@@ -573,7 +573,7 @@ export default function UserProfile() {
     } catch (error) {
       console.error('Error updating profile:', error);
       // Revert optimistic update
-      setUser(previousUser);
+      updateLocalUser(previousUser);
       setFormData(previousUser);
       showToast('Failed to update profile.', 'error');
     } finally {

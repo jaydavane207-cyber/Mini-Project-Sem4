@@ -19,13 +19,14 @@ export default function AISuggestions() {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Only score groups the user hasn't joined yet, that have open spots, and are real groups (not DMs/General)
-      const openGroups = groups.filter(g => 
-        g.type !== 'DM' &&
-        g.type !== 'General' &&
-        g.privacy !== 'private' && 
-        g.members < g.maxMembers && 
-        !g.memberIds?.includes(user.id)
-      );
+      const openGroups = groups.filter(g => {
+        const memberCount = g.memberIds?.length || g.members || 1;
+        return g.type !== 'DM' &&
+          g.type !== 'General' &&
+          g.privacy !== 'private' && 
+          memberCount < g.maxMembers && 
+          !g.memberIds?.includes(user.id);
+      });
 
       const scoredGroups = openGroups.map(g => {
         let score = 0;
@@ -71,7 +72,7 @@ export default function AISuggestions() {
           groupName: g.name,
           groupEvent: g.event,
           groupType: g.type,
-          spotsLeft: g.maxMembers - g.members,
+          spotsLeft: g.maxMembers - (g.memberIds?.length || g.members || 1),
           score: Math.min(100, Math.round(score)),
           reason: reasons[0]
         };
