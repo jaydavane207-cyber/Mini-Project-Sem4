@@ -100,55 +100,70 @@ export default function CampusChat() {
   // Handle clicking a chat from the sidebar eagerly
   const handleSelectChat = async (targetId) => {
     setActiveChat(targetId);
-    
+
     if (targetId === 'general') {
-       // Campus General is handled by the useEffect above
+       // Campus General is handled by the useEffect below
        return;
     }
-    
-    // For DMs: check dmGroupMap first (fast), then fall back to groups list
-    const existingGroupId = Object.keys(dmGroupMap).find(gid => dmGroupMap[gid] === targetId);
-    let dmGroup = existingGroupId
-      ? { id: parseInt(existingGroupId) }
-      : (groups || []).find(g =>
-          (g.privacy === 'private' || g.is_private === true || g.type === 'DM') &&
-          g.memberIds?.includes(user?.id) &&
-          g.memberIds?.includes(targetId) &&
-          g.memberIds?.length === 2
-        );
 
-    if (dmGroup) {
-      setActiveGroupId(dmGroup.id);
-    } else {
-      // Create a new DM group between these two users
-      try {
-        const payload = {
-          name: `DM`,
+    // ALWAYS query the DB directly to find an existing DM group.
+    // Do NOT rely on dmGroupMap or groups (they may be stale/empty on first load).
+    try {
+      // Find all groups where the current user is a member AND it's a DM type
+      const { data: myMemberships } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('profile_id', user?.id);
+
+      if (myMemberships && myMemberships.length > 0) {
+        const myGroupIds = myMemberships.map(m => m.group_id);
+
+        // Find all DM groups that the OTHER user is also a member of
+        const { data: sharedGroups } = await supabase
+          .from('group_members')
+          .select('group_id, groups!inner(id, type)')
+          .eq('profile_id', targetId)
+          .eq('groups.type', 'DM')
+          .in('group_id', myGroupIds);
+
+        if (sharedGroups && sharedGroups.length > 0) {
+          // Found existing DM group — use it
+          const existingGroupId = sharedGroups[0].group_id;
+          setActiveGroupId(existingGroupId);
+          // Also update local map for subscription use
+          setDmGroupMap(prev => ({ ...prev, [existingGroupId]: targetId }));
+          return;
+        }
+      }
+
+      // No existing DM group — create one
+      const { data: insertedGroup, error: groupErr } = await supabase
+        .from('groups')
+        .insert({
+          name: 'DM',
           type: 'DM',
           description: 'Direct Message',
           privacy: 'private',
           max_members: 2,
           members: 2,
           admin_id: user?.id
-        };
+        })
+        .select()
+        .single();
 
-        const { data: insertedGroup, error: groupErr } = await supabase.from('groups').insert(payload).select().single();
-        if (groupErr) throw groupErr;
+      if (groupErr) throw groupErr;
 
-        if (insertedGroup) {
-          // Add both users to group_members
-          await supabase.from('group_members').insert([
-            { group_id: insertedGroup.id, profile_id: user?.id },
-            { group_id: insertedGroup.id, profile_id: targetId }
-          ]);
-          // Update local dmGroupMap so global subscription picks it up immediately
-          setDmGroupMap(prev => ({ ...prev, [insertedGroup.id]: targetId }));
-          setActiveGroupId(insertedGroup.id);
-          if (refreshGroups) refreshGroups();
-        }
-      } catch (err) {
-        console.error('Error auto-creating DM group on sidebar click:', err);
+      if (insertedGroup) {
+        await supabase.from('group_members').insert([
+          { group_id: insertedGroup.id, profile_id: user?.id },
+          { group_id: insertedGroup.id, profile_id: targetId }
+        ]);
+        setDmGroupMap(prev => ({ ...prev, [insertedGroup.id]: targetId }));
+        setActiveGroupId(insertedGroup.id);
+        if (refreshGroups) refreshGroups();
       }
+    } catch (err) {
+      console.error('Error resolving DM group:', err);
     }
   };
 
@@ -266,19 +281,19 @@ export default function CampusChat() {
   
   // Fetch messages for active chat
   const fetchMessages = useCallback(async () => {
-    if (activeChat !== 'general' && !activeGroupId) {
-      setDmMessages(prev => ({ ...prev, [activeChat]: [] }));
-      return;
-    }
-    if (!activeGroupId) return; // Wait for activeGroupId to resolve
+    // For DMs: only fetch when activeGroupId is resolved. Never wipe messages with an empty array before we know the group.
+    if (!activeGroupId) return;
 
     try {
-      const query = supabase.from('messages').select('*, sender:profiles(id, name, avatar, faction)').eq('group_id', activeGroupId).order('created_at', { ascending: true });
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*, sender:profiles(id, name, avatar, faction)')
+        .eq('group_id', activeGroupId)
+        .order('created_at', { ascending: true });
 
-      const { data, error } = await query;
       if (error) throw error;
 
-      const mapped = data.map(m => ({
+      const mapped = (data || []).map(m => ({
         id: m.id,
         text: m.text,
         senderId: m.sender_id,
@@ -286,7 +301,7 @@ export default function CampusChat() {
         reactions: {},
         replyTo: null,
         media: m.media,
-        sender: m.sender  // Full profile from DB join
+        sender: m.sender
       }));
 
       if (activeChat === 'general') {
