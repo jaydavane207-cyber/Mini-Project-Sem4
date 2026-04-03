@@ -93,6 +93,8 @@ export default function CampusChat() {
 
   const [generalMessages, setGeneralMessages] = useState([]);
   const [dmMessages, setDmMessages] = useState({});
+  // Map from group_id → other user's profile_id (for global DM subscription)
+  const [dmGroupMap, setDmGroupMap] = useState({}); // { groupId: otherUserId }
 
   // Resolve active group ID
   // Handle clicking a chat from the sidebar eagerly
@@ -104,18 +106,21 @@ export default function CampusChat() {
        return;
     }
     
-    // For DMs: Find existing private group between these exact two users
-    let dmGroup = (groups || []).find(g => 
-      (g.privacy === 'private' || g.is_private === true || g.type === 'DM') && 
-      g.memberIds?.includes(user?.id) && 
-      g.memberIds?.includes(targetId) &&
-      g.memberIds?.length === 2
-    );
+    // For DMs: check dmGroupMap first (fast), then fall back to groups list
+    const existingGroupId = Object.keys(dmGroupMap).find(gid => dmGroupMap[gid] === targetId);
+    let dmGroup = existingGroupId
+      ? { id: parseInt(existingGroupId) }
+      : (groups || []).find(g =>
+          (g.privacy === 'private' || g.is_private === true || g.type === 'DM') &&
+          g.memberIds?.includes(user?.id) &&
+          g.memberIds?.includes(targetId) &&
+          g.memberIds?.length === 2
+        );
 
     if (dmGroup) {
       setActiveGroupId(dmGroup.id);
     } else {
-      // Eagerly insert a new private group into the groups table for this DM
+      // Create a new DM group between these two users
       try {
         const payload = {
           name: `DM`,
@@ -126,7 +131,7 @@ export default function CampusChat() {
           members: 2,
           admin_id: user?.id
         };
-        
+
         const { data: insertedGroup, error: groupErr } = await supabase.from('groups').insert(payload).select().single();
         if (groupErr) throw groupErr;
 
@@ -136,6 +141,8 @@ export default function CampusChat() {
             { group_id: insertedGroup.id, profile_id: user?.id },
             { group_id: insertedGroup.id, profile_id: targetId }
           ]);
+          // Update local dmGroupMap so global subscription picks it up immediately
+          setDmGroupMap(prev => ({ ...prev, [insertedGroup.id]: targetId }));
           setActiveGroupId(insertedGroup.id);
           if (refreshGroups) refreshGroups();
         }
@@ -174,6 +181,86 @@ export default function CampusChat() {
     if (user && groups) resolveGeneralGroupId();
     return () => { isMounted = false; };
   }, [activeChat, groups, user]);
+
+  // ─── Global DM Subscription ────────────────────────────────────────────────────
+  // Build a map of all DM groups this user is a member of, then subscribe to ALL
+  // of them so messages arrive regardless of which conversation is currently open.
+  useEffect(() => {
+    if (!user?.id) return;
+    let isMounted = true;
+
+    const buildDmGroupMap = async () => {
+      // Find all DM groups where this user is a member
+      const { data: memberRows } = await supabase
+        .from('group_members')
+        .select('group_id, groups(id, type, group_members(profile_id))')
+        .eq('profile_id', user.id);
+
+      if (!isMounted || !memberRows) return;
+
+      const map = {}; // groupId -> otherUserId
+      for (const row of memberRows) {
+        const grp = row.groups;
+        if (!grp || grp.type !== 'DM') continue;
+        const members = grp.group_members?.map(m => m.profile_id) || [];
+        if (members.length !== 2) continue;
+        const otherId = members.find(id => id !== user.id);
+        if (otherId) map[grp.id] = otherId;
+      }
+      if (isMounted) setDmGroupMap(map);
+    };
+
+    buildDmGroupMap();
+    return () => { isMounted = false; };
+  }, [user?.id, groups]); // re-run when groups list updates (new DMs created)
+
+  // Subscribe to all known DM groups globally
+  useEffect(() => {
+    if (!user?.id || Object.keys(dmGroupMap).length === 0) return;
+
+    const groupIds = Object.keys(dmGroupMap).map(Number);
+
+    const channel = supabase
+      .channel(`dm-global:${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
+        const newM = payload.new;
+        const groupIdNum = Number(newM.group_id);
+        if (!groupIds.includes(groupIdNum)) return; // not a DM we care about
+
+        const otherUserId = dmGroupMap[groupIdNum];
+        if (!otherUserId) return;
+
+        // Fetch full message with sender profile
+        const { data: fullMsg } = await supabase
+          .from('messages')
+          .select('*, sender:profiles(id, name, avatar, faction)')
+          .eq('id', newM.id)
+          .single();
+
+        if (!fullMsg) return;
+
+        const mapped = {
+          id: fullMsg.id,
+          text: fullMsg.text,
+          senderId: fullMsg.sender_id,
+          timestamp: new Date(fullMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          reactions: {},
+          replyTo: null,
+          media: fullMsg.media,
+          sender: fullMsg.sender,
+        };
+
+        // Store under the OTHER user's id (the DM partner) as the key
+        setDmMessages(prev => {
+          const existing = prev[otherUserId] || [];
+          if (existing.find(msg => msg.id === mapped.id)) return prev;
+          return { ...prev, [otherUserId]: [...existing, mapped] };
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, dmGroupMap]);
 
   // ─── Supabase Sync ─────────────────────────────────────────────────────────────
   
@@ -215,15 +302,40 @@ export default function CampusChat() {
   useEffect(() => {
     fetchMessages();
 
-    // Subscribe to new messages using a group-specific channel name
-    const channelName = `campus-chat:${activeGroupId || 'general'}`;
+    // Subscribe to Campus General channel only (DMs are handled by the global DM subscription)
+    if (activeChat !== 'general' || !activeGroupId) return;
+
+    const channelName = `campus-chat:${activeGroupId}`;
     const channel = supabase
       .channel(channelName)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
         const newM = payload.new;
-        if (activeGroupId && Number(newM.group_id) === Number(activeGroupId)) {
-          fetchMessages(); 
-        }
+        if (!activeGroupId || Number(newM.group_id) !== Number(activeGroupId)) return;
+
+        // Fetch the full message with sender profile
+        const { data: fullMsg } = await supabase
+          .from('messages')
+          .select('*, sender:profiles(id, name, avatar, faction)')
+          .eq('id', newM.id)
+          .single();
+
+        if (!fullMsg) return;
+
+        const mapped = {
+          id: fullMsg.id,
+          text: fullMsg.text,
+          senderId: fullMsg.sender_id,
+          timestamp: new Date(fullMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          reactions: {},
+          replyTo: null,
+          media: fullMsg.media,
+          sender: fullMsg.sender,
+        };
+
+        setGeneralMessages(prev => {
+          if (prev.find(msg => msg.id === mapped.id)) return prev;
+          return [...prev, mapped];
+        });
       })
       .subscribe();
 
@@ -322,7 +434,9 @@ export default function CampusChat() {
   const onlineStudents = students.filter(s => s.online);
   // DM history uses string UUIDs as keys — keep them as strings
   const dmHistoryIds = Object.keys(dmMessages);
-  const sidebarStudents = [...students].sort((a, b) => {
+  // Deduplicate students by id before sorting (prevents same user appearing twice in DM list)
+  const uniqueStudents = [...new Map(students.map(s => [s.id, s])).values()];
+  const sidebarStudents = uniqueStudents.sort((a, b) => {
     const aH = dmHistoryIds.includes(String(a.id)), bH = dmHistoryIds.includes(String(b.id));
     if (aH && !bH) return -1; if (!aH && bH) return 1;
     return b.online - a.online;
