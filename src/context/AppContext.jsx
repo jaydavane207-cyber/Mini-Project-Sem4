@@ -34,6 +34,16 @@ export const AppProvider = ({ children }) => {
     setUserRaw(val);
   };
 
+  // Safe merge: updates only the specified fields in the user state,
+  // without wiping other fields (e.g. bio, cgpa, social_links, onboardingComplete).
+  const mergeUserState = (partial) => {
+    setUserRaw(prev => {
+      const merged = { ...prev, ...partial };
+      userRef.current = merged;
+      return merged;
+    });
+  };
+
   const fetchGroups = useCallback(async () => {
     // Fetch groups and their members using a join or separate query
     const { data: groupsData, error: groupsError } = await supabase.from('groups').select('*, group_members(profile_id)');
@@ -175,6 +185,9 @@ export const AppProvider = ({ children }) => {
     const userId = user?.id || userData.id;
     if (!userId) return;
     
+    // Build a complete profile object for the initial upsert (onboarding).
+    // Include ALL known profile fields so the upsert never strips dynamic
+    // JSONB columns (bio, cgpa, social_links) that may have been added later.
     const profile = {
       id: userId,
       name: userData.name || userData.fullName,
@@ -188,7 +201,12 @@ export const AppProvider = ({ children }) => {
       branch: userData.branch || '',
       year: userData.year || '',
       phone: userData.phone || '',
-      email: user?.email || userData.email || ''
+      email: user?.email || userData.email || '',
+      // Dynamic/optional fields — preserve whatever was passed in
+      bio: userData.bio || '',
+      cgpa: userData.cgpa || null,
+      dob: userData.dob || null,
+      social_links: userData.social_links || userData.socialLinks || {}
     };
 
     const { data, error } = await supabase
@@ -265,7 +283,12 @@ export const AppProvider = ({ children }) => {
 
   return (
     <AppContext.Provider value={{
-      user, setUser: handleSetUser,
+      user,
+      // setUser: used only by onboarding — does a full profile upsert
+      setUser: handleSetUser,
+      // updateLocalUser: used by UserProfile for instant UI updates without
+      // triggering a secondary DB write. Merges partial data into user state.
+      updateLocalUser: mergeUserState,
       selectedGroupId, setSelectedGroupId,
       groups, setGroups,
       theme, setTheme,
