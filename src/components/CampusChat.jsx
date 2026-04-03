@@ -171,13 +171,15 @@ export default function CampusChat() {
     let isMounted = true;
     const resolveGeneralGroupId = async () => {
       if (activeChat === 'general') {
+        let generalGroupId = null;
+
         let g = (groups || []).find(g => g.type === 'General' || g.name === 'Campus General');
         if (g) {
-          if (isMounted) setActiveGroupId(g.id);
+          generalGroupId = g.id;
         } else {
            const { data } = await supabase.from('groups').select('id').eq('type', 'General').maybeSingle();
            if (data) {
-              if (isMounted) setActiveGroupId(data.id);
+              generalGroupId = data.id;
            } else {
               const { data: newG } = await supabase.from('groups').insert({
                 name: 'Campus General',
@@ -188,8 +190,24 @@ export default function CampusChat() {
                 members: 0,
                 admin_id: user?.id
               }).select().single();
-              if (isMounted && newG) setActiveGroupId(newG.id);
+              if (newG) generalGroupId = newG.id;
            }
+        }
+
+        if (!isMounted || !generalGroupId) return;
+        setActiveGroupId(generalGroupId);
+
+        // ── RLS FIX: ensure the current user is a member of the General group ──
+        // The messages INSERT policy requires group membership. This upsert is
+        // idempotent (conflict on primary key is ignored), so it's safe to run
+        // every time the user opens the General channel.
+        if (user?.id) {
+          await supabase
+            .from('group_members')
+            .upsert(
+              { group_id: generalGroupId, profile_id: user.id },
+              { onConflict: 'group_id,profile_id', ignoreDuplicates: true }
+            );
         }
       }
     };
