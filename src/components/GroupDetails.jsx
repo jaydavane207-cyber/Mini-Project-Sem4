@@ -81,6 +81,22 @@ export default function GroupDetails() {
 
   const [groupMessages, setGroupMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(true);
+  const [realMembers, setRealMembers] = useState([]);
+
+  // Fetch real group members from Supabase
+  useEffect(() => {
+    if (!id) return;
+    const fetchRealMembers = async () => {
+      const { data, error } = await supabase
+        .from('group_members')
+        .select('profile_id, profiles(id, name, avatar, faction, online)')
+        .eq('group_id', Number(id));
+      if (!error && data) {
+        setRealMembers(data.map(m => m.profiles).filter(Boolean));
+      }
+    };
+    fetchRealMembers();
+  }, [id]);
 
   const formatMessage = useCallback((m) => ({
     id: m.id,
@@ -628,17 +644,7 @@ export default function GroupDetails() {
                {activeTab === 'tasks' && (
                  <KanbanBoard
                    groupId={group.id}
-                   members={[
-                     // include current user first
-                     { id: user.id, name: user.name || 'You', avatar: user.avatar || '🎓' },
-                     // then mock other group members from students list
-                     ...Array.from({ length: Math.max(0, (group.members || 1) - 1) })
-                       .map((_, i) => {
-                         const s = students?.[i % (students?.length || 1)];
-                         return s ? { id: s.id, name: s.name, avatar: s.avatar } : null;
-                       })
-                       .filter(Boolean),
-                   ]}
+                   members={realMembers.length > 0 ? realMembers : [{ id: user.id, name: user.name || 'You', avatar: user.avatar || '🎓' }]}
                  />
                )}
             </div>
@@ -716,47 +722,44 @@ export default function GroupDetails() {
             </div>
           </div>
           <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] p-6 rounded-2xl">
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Users className="text-[var(--color-gs-violet)]" /> {`Members (${group.members}${group.maxMembers ? '/' + group.maxMembers : ''})`}</h3>
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Users className="text-[var(--color-gs-violet)]" /> {`Members (${realMembers.length || group.members}${group.maxMembers ? '/' + group.maxMembers : ''})`}</h3>
             
             <div className="space-y-4">
-               {/* Current User */}
-               {isMember && (
-                 <div className="flex items-center gap-3">
-                   <div className="w-10 h-10 rounded-full border border-[var(--color-gs-border)] bg-[var(--color-gs-bg)] flex items-center justify-center text-lg">{user.avatar}</div>
-                   <div>
-                     <p className="font-bold text-sm">You {isAdmin && <span className="text-xs text-[var(--color-gs-cyan)]">(Admin)</span>}</p>
-                   </div>
+               {realMembers.length === 0 ? (
+                 <div className="px-2 py-4 text-center text-sm text-[var(--color-gs-text-muted)]">
+                   Loading members...
                  </div>
-               )}
-               {/* Mock other members */}
-               {/* Other members */}
-               {students && students.length > 0 ? Array.from({length: isMember ? group.members - 1 : group.members }).map((_, i) => {
-                  const student = students[i % students.length];
-                  const FactionColor = factions[student.faction]?.color || 'text-gray-500';
-                  const FactionBorder = factions[student.faction]?.border || 'border-gray-500';
-                  const FactionName = factions[student.faction]?.name || 'Unknown Faction';
+               ) : realMembers.map((member) => {
+                  const isCurrentUser = member.id === user.id;
+                  const isGroupAdmin = member.id === group.adminId;
+                  const FactionColor = factions[member.faction]?.color || 'text-gray-500';
+                  const FactionBorder = factions[member.faction]?.border || 'border-gray-500';
+                  const FactionName = factions[member.faction]?.name || 'Member';
                   return (
-                   <div key={i} className="flex items-center gap-3 group cursor-pointer p-2 hover:bg-[var(--color-gs-bg)] rounded-xl transition-colors">
-                     <div className={"w-10 h-10 rounded-full border bg-[var(--color-gs-bg)] flex items-center justify-center text-lg " + FactionBorder}>{student.avatar || '👤'}</div>
+                   <div key={member.id} className="flex items-center gap-3 group cursor-pointer p-2 hover:bg-[var(--color-gs-bg)] rounded-xl transition-colors">
+                     <div className="relative shrink-0">
+                       <div className={"w-10 h-10 rounded-full border bg-[var(--color-gs-bg)] flex items-center justify-center text-lg " + FactionBorder}>{member.avatar || '👤'}</div>
+                       {member.online && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[var(--color-gs-green)] rounded-full border-2 border-[var(--color-gs-card)]" />}
+                     </div>
                      <div className="flex-1">
-                       <p className="font-bold text-sm">{student.name || 'Unknown User'}</p>
+                       <p className="font-bold text-sm">
+                         {isCurrentUser ? 'You' : member.name || 'Unknown User'}
+                         {isGroupAdmin && <span className="ml-1 text-xs text-[var(--color-gs-cyan)]">(Admin)</span>}
+                       </p>
                        <p className={"text-xs " + FactionColor}>{FactionName}</p>
                      </div>
-                     <button onClick={(e) => {
-                       e.stopPropagation();
-                       navigate('/chat');
-                       showToast(`Opened DM with ${student.name}`);
-                     }} className="opacity-0 group-hover:opacity-100 p-2 text-[var(--color-gs-cyan)] hover:bg-[var(--color-gs-cyan)]/20 rounded-lg transition-all">
-                       <MessageSquare size={16} />
-                     </button>
+                     {!isCurrentUser && (
+                       <button onClick={(e) => {
+                         e.stopPropagation();
+                         navigate('/chat');
+                         showToast(`Opened DM with ${member.name}`);
+                       }} className="opacity-0 group-hover:opacity-100 p-2 text-[var(--color-gs-cyan)] hover:bg-[var(--color-gs-cyan)]/20 rounded-lg transition-all">
+                         <MessageSquare size={16} />
+                       </button>
+                     )}
                    </div>
                   );
-               }) : (
-                 // UI-2 FIX: Use loading flag to differentiate between loading and empty
-                 <div className="px-2 py-4 text-center text-sm text-[var(--color-gs-text-muted)]">
-                   {loading ? 'Loading members...' : 'No other members yet.'}
-                 </div>
-               )}
+               })}
             </div>
           </div>
         </div>
