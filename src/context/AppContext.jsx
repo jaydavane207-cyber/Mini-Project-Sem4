@@ -42,7 +42,7 @@ export const AppProvider = ({ children }) => {
       const mappedGroups = groupsData.map(g => ({
         ...g,
         adminId: g.admin_id,
-        maxMembers: g.max_members || g.maxMembers,
+        maxMembers: Math.min(g.max_members || g.maxMembers || 10, 10),
         memberIds: g.group_members?.map(m => m.profile_id) || []
       }));
       setGroups(mappedGroups.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)));

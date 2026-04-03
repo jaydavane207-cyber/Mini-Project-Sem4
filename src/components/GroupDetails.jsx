@@ -625,7 +625,22 @@ export default function GroupDetails() {
                    </div>
                  </div>
                )}
-               {activeTab === 'tasks' && <KanbanBoard groupId={group.id} />}
+               {activeTab === 'tasks' && (
+                 <KanbanBoard
+                   groupId={group.id}
+                   members={[
+                     // include current user first
+                     { id: user.id, name: user.name || 'You', avatar: user.avatar || '🎓' },
+                     // then mock other group members from students list
+                     ...Array.from({ length: Math.max(0, (group.members || 1) - 1) })
+                       .map((_, i) => {
+                         const s = students?.[i % (students?.length || 1)];
+                         return s ? { id: s.id, name: s.name, avatar: s.avatar } : null;
+                       })
+                       .filter(Boolean),
+                   ]}
+                 />
+               )}
             </div>
           ) : (
             <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] p-8 rounded-2xl flex flex-col items-center justify-center text-center space-y-6">

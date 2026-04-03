@@ -186,7 +186,7 @@ export default function CampusChat() {
     if (!activeGroupId) return; // Wait for activeGroupId to resolve
 
     try {
-      const query = supabase.from('messages').select('*, sender:profiles(*)').eq('group_id', activeGroupId).order('created_at', { ascending: true });
+      const query = supabase.from('messages').select('*, sender:profiles(id, name, avatar, faction)').eq('group_id', activeGroupId).order('created_at', { ascending: true });
 
       const { data, error } = await query;
       if (error) throw error;
@@ -196,10 +196,10 @@ export default function CampusChat() {
         text: m.text,
         senderId: m.sender_id,
         timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        reactions: {}, // Currently handled locally or needs extra table
+        reactions: {},
         replyTo: null,
         media: m.media,
-        sender: m.sender
+        sender: m.sender  // Full profile from DB join
       }));
 
       if (activeChat === 'general') {
@@ -210,18 +210,18 @@ export default function CampusChat() {
     } catch (err) {
       console.error('Error fetching messages:', err);
     }
-  }, [activeChat]);
+  }, [activeChat, activeGroupId]);
 
   useEffect(() => {
     fetchMessages();
 
-    // Subscribe to new messages
+    // Subscribe to new messages using a group-specific channel name
+    const channelName = `campus-chat:${activeGroupId || 'general'}`;
     const channel = supabase
-      .channel('campus-chat')
+      .channel(channelName)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
         const newM = payload.new;
         if (activeGroupId && Number(newM.group_id) === Number(activeGroupId)) {
-          // We need sender info too, so we might need to fetch it or use a view
           fetchMessages(); 
         }
       })
@@ -320,16 +320,19 @@ export default function CampusChat() {
   const getMessages = () => activeChat === 'general' ? generalMessages : (dmMessages[activeChat] || []);
   const activeUser = activeChat !== 'general' ? students.find(s => s.id === activeChat) : null;
   const onlineStudents = students.filter(s => s.online);
-  const dmHistoryIds = Object.keys(dmMessages).map(Number);
+  // DM history uses string UUIDs as keys — keep them as strings
+  const dmHistoryIds = Object.keys(dmMessages);
   const sidebarStudents = [...students].sort((a, b) => {
-    const aH = dmHistoryIds.includes(a.id), bH = dmHistoryIds.includes(b.id);
+    const aH = dmHistoryIds.includes(String(a.id)), bH = dmHistoryIds.includes(String(b.id));
     if (aH && !bH) return -1; if (!aH && bH) return 1;
     return b.online - a.online;
   }).filter(s => !userSearch || s.name.toLowerCase().includes(userSearch.toLowerCase()));
 
   const getSenderInfo = (msg) => {
-    if (msg.senderId === 'ME') return { sender: user, isMe: true };
-    const sender = activeChat === 'general' ? students.find(s => s.id === msg.senderId) : activeUser;
+    const isMe = msg.senderId === user?.id;
+    if (isMe) return { sender: { ...user, name: 'You' }, isMe: true };
+    // Prefer sender data joined from DB (msg.sender), fall back to students list
+    const sender = msg.sender || students.find(s => s.id === msg.senderId) || activeUser;
     return { sender, isMe: false };
   };
 
@@ -438,21 +441,22 @@ export default function CampusChat() {
         <div ref={chatAreaRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 relative">
           {messages.map(msg => {
             const { sender, isMe } = getSenderInfo(msg);
-            if (!sender) return null;
-            const hasFaction = !isMe ? factions[sender.faction] : factions[user?.faction];
+            // Provide fallback rather than hiding the message entirely
+            const resolvedSender = sender || { name: 'Unknown User', avatar: '🎓', faction: null };
+            const hasFaction = !isMe ? factions[resolvedSender.faction] : factions[user?.faction];
 
             return (
               <div key={msg.id} className={"flex gap-3 w-full max-w-2xl group " + (isMe ? "self-end flex-row-reverse" : "self-start")}>
                 {/* Avatar */}
                 <div className={"w-9 h-9 shrink-0 rounded-full border-2 flex items-center justify-center text-base bg-[var(--color-gs-card)] mt-1 " + (hasFaction?.border || 'border-[var(--color-gs-border)]')}>
-                  {sender.avatar || '🎓'}
+                  {resolvedSender.avatar || '🎓'}
                 </div>
 
                 <div className={"flex flex-col " + (isMe ? "items-end" : "items-start")}>
                   {/* Sender name + time */}
                   <div className="flex items-baseline gap-2 mb-1">
                     <span className={"text-xs font-bold " + (hasFaction?.color || 'text-[var(--color-gs-text-muted)]')}>
-                      {isMe ? 'You' : sender.name}
+                      {isMe ? 'You' : resolvedSender.name}
                     </span>
                     <span className="text-[10px] text-[var(--color-gs-text-muted)]">{msg.timestamp}</span>
                   </div>
@@ -514,7 +518,7 @@ export default function CampusChat() {
           })}
 
           {/* Typing indicator */}
-          {!messages.find(m => m.senderId === 'ME') === false && isTyping && (
+          {messages.length > 0 && isTyping && (
             <div className="self-start flex gap-3">
               <div className="w-9 h-9 rounded-full bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] flex items-center justify-center text-base">
                 {activeUser?.avatar || '?'}

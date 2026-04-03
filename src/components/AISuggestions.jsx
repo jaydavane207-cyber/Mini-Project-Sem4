@@ -18,8 +18,10 @@ export default function AISuggestions() {
       // Small artificial delay to simulate AI processing
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Only score groups the user hasn't joined yet and that have open spots
+      // Only score groups the user hasn't joined yet, that have open spots, and are real groups (not DMs/General)
       const openGroups = groups.filter(g => 
+        g.type !== 'DM' &&
+        g.type !== 'General' &&
         g.privacy !== 'private' && 
         g.members < g.maxMembers && 
         !g.memberIds?.includes(user.id)
@@ -184,7 +186,7 @@ export default function AISuggestions() {
       <div className="bg-gs-card border border-gs-border rounded-3xl p-8">
         <h2 className="text-xl font-bold mb-6">All Groups: Skill Overlap</h2>
         <div className="space-y-6">
-          {groups.map(group => {
+          {groups.filter(g => g.type !== 'DM' && g.type !== 'General').map(group => {
             const overlap = getOverlapScore(group);
             return (
               <div key={group.id} className="group cursor-pointer" onClick={() => handleViewGroup(group.id)}>
