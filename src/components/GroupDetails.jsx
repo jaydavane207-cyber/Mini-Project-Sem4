@@ -680,9 +680,13 @@ export default function GroupDetails() {
         
         <div className="space-y-4">
           {/* Event Details Bar */}
-          <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] p-6 rounded-2xl">
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><CalendarIcon className="text-[var(--color-gs-amber)]" /> Event Details</h3>
-            <div className="space-y-3">
+          <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-2xl overflow-hidden">
+            {group.poster_url && (
+              <img src={group.poster_url} alt={`${group.name} Event Banner`} className="w-full h-40 object-cover border-b border-[var(--color-gs-border)]" />
+            )}
+            <div className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><CalendarIcon className="text-[var(--color-gs-amber)]" /> Event Details</h3>
+              <div className="space-y-3">
               <div className="flex items-center gap-3 p-3 bg-[var(--color-gs-bg)] rounded-xl border border-[var(--color-gs-border)]">
                 <div className="p-2 rounded-lg bg-[var(--color-gs-cyan)]/10">
                   <CalendarIcon size={16} className="text-[var(--color-gs-cyan)]" />
@@ -719,6 +723,7 @@ export default function GroupDetails() {
                   <p className="text-sm font-bold text-[var(--color-gs-text-main)]">{group.type}</p>
                 </div>
               </div>
+            </div>
             </div>
           </div>
           <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] p-6 rounded-2xl">

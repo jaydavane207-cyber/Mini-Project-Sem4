@@ -603,7 +603,7 @@ export default function CampusChat() {
   const activeUser = activeChat !== 'general' ? students.find(s => s.id === activeChat) : null;
   const onlineStudents = students.filter(s => s.online);
   const dmHistoryIds = Object.keys(dmMessages);
-  const uniqueStudents = [...new Map(students.map(s => [s.id, s])).values()];
+  const uniqueStudents = [...new Map(students.map(s => [s.id, s])).values()].filter(s => s.id !== user?.id);
   const sidebarStudents = uniqueStudents.sort((a, b) => {
     const aH = dmHistoryIds.includes(String(a.id)), bH = dmHistoryIds.includes(String(b.id));
     if (aH && !bH) return -1; if (!aH && bH) return 1;

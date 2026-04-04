@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import { Compass, Sparkles, X } from 'lucide-react';
+import { Compass, Sparkles, X, ImagePlus, Trash2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { ONBOARDING_SKILLS, ONBOARDING_AVATARS } from '../data/mockData';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +14,29 @@ export default function BrowseGroups() {
   const [filterType, setFilterType] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newGroup, setNewGroup] = useState({ name: '', event: '', type: 'Hackathon', description: '', maxMembers: 4, skills: [], privacy: 'public' });
+  const [posterFile, setPosterFile] = useState(null);
+  const [posterPreview, setPosterPreview] = useState(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handlePosterSelect = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setPosterFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setPosterPreview(e.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handlePosterDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    handlePosterSelect(file);
+  };
+
+  const removePoster = () => {
+    setPosterFile(null);
+    setPosterPreview(null);
+  };
 
   // BUG-2/3 FIX: Fallback groups shown ONLY when the database has no groups yet.
   // These use IDs that won't conflict with real Supabase rows (which are integers),
@@ -70,6 +93,22 @@ export default function BrowseGroups() {
     if (!newGroup.name || !newGroup.description) return;
 
     try {
+      // Upload poster image to Supabase Storage if provided
+      let posterUrl = null;
+      if (posterFile) {
+        const fileExt = posterFile.name.split('.').pop();
+        const fileName = `group-posters/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('group-assets')
+          .upload(fileName, posterFile, { upsert: true });
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage.from('group-assets').getPublicUrl(fileName);
+          posterUrl = urlData?.publicUrl || null;
+        } else {
+          console.warn('Poster upload failed:', uploadError.message);
+        }
+      }
+
       const dbGroup = {
         name: newGroup.name,
         event: newGroup.event || 'Hackathon',
@@ -79,7 +118,8 @@ export default function BrowseGroups() {
         members: 1, 
         max_members: newGroup.maxMembers,
         privacy: newGroup.privacy,
-        admin_id: user?.id || null
+        admin_id: user?.id || null,
+        ...(posterUrl && { poster_url: posterUrl })
       };
 
       const { data: insertedGroup, error: groupError } = await supabase
@@ -123,6 +163,8 @@ export default function BrowseGroups() {
       setIsModalOpen(false);
       showToast('Group created successfully!');
       setNewGroup({ name: '', event: '', type: 'Hackathon', description: '', maxMembers: 4, skills: [], privacy: 'public' });
+      setPosterFile(null);
+      setPosterPreview(null);
     } catch (err) {
       console.error('Error creating group:', err);
       showToast(`Group Creation Failed: ${err.message || 'Check connection'}`, 'error');
@@ -187,32 +229,44 @@ export default function BrowseGroups() {
           const isFull = group.members >= group.maxMembers;
 
           return (
-            <div key={group.id} className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-2xl p-6 transition-all duration-300 hover:border-gray-500 hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col h-full">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-bold">{group.name}</h3>
-                  <p className="text-sm text-[var(--color-gs-text-muted)]">{group.event}</p>
+            <div key={group.id} className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-2xl overflow-hidden transition-all duration-300 hover:border-gray-500 hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col h-full">
+              <div className="p-6 flex-1 flex flex-col">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-xl font-bold">{group.name}</h3>
+                    <p className="text-sm text-[var(--color-gs-text-muted)]">{group.event}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
+                    {group.privacy === 'private' && (
+                      <span className={"px-3 py-1 rounded-full text-xs font-bold border border-gray-600 text-gray-400"}>Private</span>
+                    )}
+                    <span className={"px-3 py-1 rounded-full text-xs font-bold " + badgeClass}>{group.type}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {group.privacy === 'private' && (
-                    <span className={"px-3 py-1 rounded-full text-xs font-bold border border-gray-600 text-gray-400"}>Private</span>
-                  )}
-                  <span className={"px-3 py-1 rounded-full text-xs font-bold " + badgeClass}>{group.type}</span>
+
+                {group.poster_url && (
+                  <div className="w-full h-56 shrink-0 mb-6 rounded-xl overflow-hidden border border-[var(--color-gs-border)] bg-[var(--color-gs-bg)] relative group">
+                    <img 
+                      src={group.poster_url} 
+                      alt={`${group.name} poster`} 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-gs-card)]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                )}
+
+                <p className="text-[var(--color-gs-text-muted)] text-sm mb-6 flex-1">{group.description}</p>
+                
+                <div className="mb-6">
+                  <p className="text-xs text-[var(--color-gs-text-muted)] uppercase font-bold mb-2 tracking-wider">Skills Needed</p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.skills.map(skill => (
+                      <span key={skill} className="px-2 py-1 bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-md text-xs text-[var(--color-gs-text-muted)]">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              
-              <p className="text-[var(--color-gs-text-muted)] text-sm mb-6 flex-1">{group.description}</p>
-              
-              <div className="mb-6">
-                <p className="text-xs text-[var(--color-gs-text-muted)] uppercase font-bold mb-2 tracking-wider">Skills Needed</p>
-                <div className="flex flex-wrap gap-2">
-                  {group.skills.map(skill => (
-                    <span key={skill} className="px-2 py-1 bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-md text-xs text-[var(--color-gs-text-muted)]">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
 
               <div className="mt-auto">
                 <div className="flex justify-between items-center mb-2">
@@ -243,6 +297,7 @@ export default function BrowseGroups() {
                   {group.isFallback ? 'Sample Group' : 'View Group'}
                 </button>
               </div>
+              </div>{/* end inner content wrapper */}
             </div>
           );
         })}
@@ -305,6 +360,55 @@ export default function BrowseGroups() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Event Poster / Image Upload */}
+              <div>
+                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Event Poster / Banner <span className="text-xs opacity-60">(optional)</span></label>
+                {posterPreview ? (
+                  <div className="relative rounded-xl overflow-hidden border border-[var(--color-gs-cyan)]/40 group">
+                    <img src={posterPreview} alt="Event poster preview" className="w-full h-40 object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={removePoster}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-500/80 hover:bg-red-500 text-white text-sm font-medium rounded-lg transition-colors"
+                      >
+                        <Trash2 size={14} /> Remove
+                      </button>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                      <p className="text-xs text-white/80 truncate">{posterFile?.name}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <label
+                    className={`flex flex-col items-center justify-center gap-3 w-full h-36 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
+                      isDragOver
+                        ? 'border-[var(--color-gs-cyan)] bg-[var(--color-gs-cyan)]/10 scale-[1.01]'
+                        : 'border-[var(--color-gs-border)] bg-[var(--color-gs-bg)] hover:border-[var(--color-gs-cyan)]/50 hover:bg-[var(--color-gs-cyan)]/5'
+                    }`}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                    onDragLeave={() => setIsDragOver(false)}
+                    onDrop={handlePosterDrop}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handlePosterSelect(e.target.files[0])}
+                    />
+                    <div className={`p-3 rounded-full transition-colors ${ isDragOver ? 'bg-[var(--color-gs-cyan)]/20' : 'bg-[var(--color-gs-border)]' }`}>
+                      <ImagePlus size={22} className={isDragOver ? 'text-[var(--color-gs-cyan)]' : 'text-[var(--color-gs-text-muted)]'} />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-[var(--color-gs-text-muted)]">
+                        {isDragOver ? 'Drop it here!' : 'Click to upload or drag & drop'}
+                      </p>
+                      <p className="text-xs text-[var(--color-gs-text-muted)]/60 mt-1">PNG, JPG, WEBP up to 5 MB</p>
+                    </div>
+                  </label>
+                )}
               </div>
               
               <div className="pt-4">
