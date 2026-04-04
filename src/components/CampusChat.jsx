@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Hash, Paperclip, Smile, Archive, Slash, Send, Reply, X, ChevronDown, Image, File, Search } from 'lucide-react';
+import { MessageSquare, Hash, Paperclip, Smile, Archive, Slash, Send, Reply, X, ChevronDown, Image, File, Search, Loader2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import supabase from '../lib/supabase';
 
@@ -73,6 +73,9 @@ function EmojiPicker({ onSelect, onClose }) {
 // ─── Message Reactions ─────────────────────────────────────────────────────────
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
+// ─── Helper: generate a temp optimistic ID ────────────────────────────────────
+const tempId = () => `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 // ─── Main CampusChat ───────────────────────────────────────────────────────────
 export default function CampusChat() {
   const { user, students, factions, showToast, groups, refreshGroups } = useAppContext();
@@ -81,15 +84,22 @@ export default function CampusChat() {
   const [inputVal, setInputVal] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
+  // pendingFile stores the raw File object so we can upload it to Supabase Storage
+  const [pendingFile, setPendingFile] = useState(null);
+  // mediaPreview stores only lightweight UI preview info (url for images, name/size for docs)
   const [mediaPreview, setMediaPreview] = useState(null);
-  const [isTyping, setIsTyping] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [typingTimer, setTypingTimer] = useState(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState({ general: 0 });
   const [userSearch, setUserSearch] = useState('');
+  // typingUsers: array of { userId, name } — people EXCEPT self who are currently typing
+  const [typingUsers, setTypingUsers] = useState([]);
   const chatEndRef = useRef(null);
   const chatAreaRef = useRef(null);
   const fileInputRef = useRef(null);
+  // Keep a ref to the active presence channel so we can track typing status
+  const presenceChannelRef = useRef(null);
 
   const [generalMessages, setGeneralMessages] = useState([]);
   const [dmMessages, setDmMessages] = useState({});
@@ -198,9 +208,6 @@ export default function CampusChat() {
         setActiveGroupId(generalGroupId);
 
         // ── RLS FIX: ensure the current user is a member of the General group ──
-        // The messages INSERT policy requires group membership. This upsert is
-        // idempotent (conflict on primary key is ignored), so it's safe to run
-        // every time the user opens the General channel.
         if (user?.id) {
           await supabase
             .from('group_members')
@@ -215,15 +222,61 @@ export default function CampusChat() {
     return () => { isMounted = false; };
   }, [activeChat, groups, user]);
 
+  // ─── Typing Presence Channel ──────────────────────────────────────────────────
+  // Join a Presence channel for the active group so both sides see live typing status.
+  useEffect(() => {
+    if (!activeGroupId || !user?.id) return;
+
+    // Leave previous presence channel when switching chats
+    if (presenceChannelRef.current) {
+      supabase.removeChannel(presenceChannelRef.current);
+      presenceChannelRef.current = null;
+    }
+
+    const channelName = `typing:${activeGroupId}`;
+    const channel = supabase.channel(channelName, {
+      config: { presence: { key: user.id } },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const typingNow = [];
+        for (const [uid, presences] of Object.entries(state)) {
+          if (uid === user.id) continue;
+          const latest = presences[presences.length - 1];
+          if (latest?.typing) typingNow.push({ userId: uid, name: latest.name || 'Someone' });
+        }
+        setTypingUsers(typingNow);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          // Initial presence: not typing
+          await channel.track({ typing: false, name: user.name });
+        }
+      });
+
+    presenceChannelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+      presenceChannelRef.current = null;
+      setTypingUsers([]);
+    };
+  }, [activeGroupId, user?.id, user?.name]);
+
+  // Broadcast typing status via Presence
+  const broadcastTyping = useCallback((isTyping) => {
+    if (!presenceChannelRef.current) return;
+    presenceChannelRef.current.track({ typing: isTyping, name: user?.name || 'Someone' });
+  }, [user?.name]);
+
   // ─── Global DM Subscription ────────────────────────────────────────────────────
-  // Build a map of all DM groups this user is a member of, then subscribe to ALL
-  // of them so messages arrive regardless of which conversation is currently open.
   useEffect(() => {
     if (!user?.id) return;
     let isMounted = true;
 
     const buildDmGroupMap = async () => {
-      // Find all DM groups where this user is a member
       const { data: memberRows } = await supabase
         .from('group_members')
         .select('group_id, groups(id, type, group_members(profile_id))')
@@ -231,7 +284,7 @@ export default function CampusChat() {
 
       if (!isMounted || !memberRows) return;
 
-      const map = {}; // groupId -> otherUserId
+      const map = {};
       for (const row of memberRows) {
         const grp = row.groups;
         if (!grp || grp.type !== 'DM') continue;
@@ -245,7 +298,7 @@ export default function CampusChat() {
 
     buildDmGroupMap();
     return () => { isMounted = false; };
-  }, [user?.id, groups]); // re-run when groups list updates (new DMs created)
+  }, [user?.id, groups]);
 
   // Subscribe to all known DM groups globally
   useEffect(() => {
@@ -258,12 +311,11 @@ export default function CampusChat() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
         const newM = payload.new;
         const groupIdNum = Number(newM.group_id);
-        if (!groupIds.includes(groupIdNum)) return; // not a DM we care about
+        if (!groupIds.includes(groupIdNum)) return;
 
         const otherUserId = dmGroupMap[groupIdNum];
         if (!otherUserId) return;
 
-        // Fetch full message with sender profile
         const { data: fullMsg } = await supabase
           .from('messages')
           .select('*, sender:profiles(id, name, avatar, faction)')
@@ -283,11 +335,14 @@ export default function CampusChat() {
           sender: fullMsg.sender,
         };
 
-        // Store under the OTHER user's id (the DM partner) as the key
         setDmMessages(prev => {
           const existing = prev[otherUserId] || [];
+          // Replace optimistic temp message (same sender + text) OR skip exact duplicate
           if (existing.find(msg => msg.id === mapped.id)) return prev;
-          return { ...prev, [otherUserId]: [...existing, mapped] };
+          const withoutTemp = existing.filter(msg =>
+            !(String(msg.id).startsWith('temp-') && msg.senderId === mapped.senderId && msg.text === mapped.text)
+          );
+          return { ...prev, [otherUserId]: [...withoutTemp, mapped] };
         });
       })
       .subscribe();
@@ -296,10 +351,7 @@ export default function CampusChat() {
   }, [user?.id, dmGroupMap]);
 
   // ─── Supabase Sync ─────────────────────────────────────────────────────────────
-  
-  // Fetch messages for active chat
   const fetchMessages = useCallback(async () => {
-    // For DMs: only fetch when activeGroupId is resolved. Never wipe messages with an empty array before we know the group.
     if (!activeGroupId) return;
 
     try {
@@ -335,7 +387,6 @@ export default function CampusChat() {
   useEffect(() => {
     fetchMessages();
 
-    // Subscribe to Campus General channel only (DMs are handled by the global DM subscription)
     if (activeChat !== 'general' || !activeGroupId) return;
 
     const channelName = `campus-chat:${activeGroupId}`;
@@ -345,7 +396,6 @@ export default function CampusChat() {
         const newM = payload.new;
         if (!activeGroupId || Number(newM.group_id) !== Number(activeGroupId)) return;
 
-        // Fetch the full message with sender profile
         const { data: fullMsg } = await supabase
           .from('messages')
           .select('*, sender:profiles(id, name, avatar, faction)')
@@ -367,7 +417,11 @@ export default function CampusChat() {
 
         setGeneralMessages(prev => {
           if (prev.find(msg => msg.id === mapped.id)) return prev;
-          return [...prev, mapped];
+          // Remove matching optimistic temp message
+          const withoutTemp = prev.filter(msg =>
+            !(String(msg.id).startsWith('temp-') && msg.senderId === mapped.senderId && msg.text === mapped.text)
+          );
+          return [...withoutTemp, mapped];
         });
       })
       .subscribe();
@@ -390,53 +444,131 @@ export default function CampusChat() {
     setShowScrollBtn(false);
   };
 
+  // ─── File Upload to Supabase Storage ──────────────────────────────────────────
+  const uploadFileToStorage = async (file) => {
+    const ext = file.name.split('.').pop();
+    const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from('chat-media').upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
+    if (error) throw error;
+    const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(path);
+    return urlData.publicUrl;
+  };
+
+  // ─── Send Message ─────────────────────────────────────────────────────────────
   const handleSend = async (e) => {
     e?.preventDefault();
-    if (!inputVal.trim() && !mediaPreview) return;
+    if (!inputVal.trim() && !pendingFile) return;
     if (!user) { showToast('Please sign in to chat', 'error'); return; }
-
     if (!activeGroupId) {
        showToast('Group still initializing. Please wait a second...', 'info');
        return;
     }
 
-    const newMessage = {
-      group_id: activeGroupId,
-      sender_id: user.id,
+    const now = new Date();
+    const nowStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const optimisticId = tempId();
+
+    // ── Build optimistic media from preview ──────────────────────────────────
+    // For the optimistic message, use the local preview URL (for images) or null.
+    const optimisticMedia = mediaPreview
+      ? (mediaPreview.type === 'image'
+          ? { type: 'image', url: mediaPreview.url, name: mediaPreview.name }
+          : { type: 'file', name: mediaPreview.name, size: mediaPreview.size })
+      : null;
+
+    // ── Append optimistic message immediately ────────────────────────────────
+    const optimisticMsg = {
+      id: optimisticId,
       text: inputVal,
-      media: mediaPreview,
+      senderId: user.id,
+      timestamp: nowStr,
+      reactions: {},
+      replyTo: replyTo ? { text: replyTo.text } : null,
+      media: optimisticMedia,
+      sender: user,
+      _optimistic: true,
     };
 
+    if (activeChat === 'general') {
+      setGeneralMessages(prev => [...prev, optimisticMsg]);
+    } else {
+      setDmMessages(prev => ({
+        ...prev,
+        [activeChat]: [...(prev[activeChat] || []), optimisticMsg],
+      }));
+    }
+
+    // Clear inputs immediately — fast UX
+    const sentText = inputVal;
+    const sentFile = pendingFile;
+    setInputVal('');
+    setReplyTo(null);
+    setPendingFile(null);
+    setMediaPreview(null);
+    broadcastTyping(false);
+    clearTimeout(typingTimer);
+    setIsSending(true);
+
     try {
-      const { error } = await supabase.from('messages').insert([newMessage]);
+      // ── Upload file to Supabase Storage (if any) ─────────────────────────
+      let finalMedia = null;
+      if (sentFile) {
+        const publicUrl = await uploadFileToStorage(sentFile);
+        const isImage = sentFile.type.startsWith('image/');
+        finalMedia = isImage
+          ? { type: 'image', url: publicUrl, name: sentFile.name }
+          : { type: 'file', url: publicUrl, name: sentFile.name, size: (sentFile.size / 1024).toFixed(1) + ' KB' };
+      }
+
+      const { error } = await supabase.from('messages').insert([{
+        group_id: activeGroupId,
+        sender_id: user.id,
+        text: sentText,
+        media: finalMedia,
+      }]);
+
       if (error) {
         console.error('Supabase error inside CampusChat.jsx handleSend:', error);
         throw error;
       }
-      
-      setInputVal('');
-      setReplyTo(null);
-      setMediaPreview(null);
-      setIsTyping(false);
     } catch (err) {
       console.error('Error sending message:', err);
+      // Rollback: remove the optimistic message
+      if (activeChat === 'general') {
+        setGeneralMessages(prev => prev.filter(m => m.id !== optimisticId));
+      } else {
+        setDmMessages(prev => ({
+          ...prev,
+          [activeChat]: (prev[activeChat] || []).filter(m => m.id !== optimisticId),
+        }));
+      }
       showToast('Failed to send message', 'error');
+    } finally {
+      setIsSending(false);
     }
   };
 
   const handleInputChange = (e) => {
     setInputVal(e.target.value);
-    setIsTyping(true);
+    broadcastTyping(true);
     clearTimeout(typingTimer);
-    setTypingTimer(setTimeout(() => setIsTyping(false), 1500));
+    const t = setTimeout(() => broadcastTyping(false), 2000);
+    setTypingTimer(t);
   };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 25 * 1024 * 1024) { showToast('File too large (max 25MB)', 'error'); return; }
+
+    setPendingFile(file); // store raw File object for upload
+
     const isImage = file.type.startsWith('image/');
     if (isImage) {
+      // Only use FileReader for lightweight local preview URL — this is NOT stored in DB
       const reader = new FileReader();
       reader.onload = (ev) => setMediaPreview({ type: 'image', url: ev.target.result, name: file.name });
       reader.readAsDataURL(file);
@@ -444,6 +576,11 @@ export default function CampusChat() {
       setMediaPreview({ type: 'file', name: file.name, size: (file.size / 1024).toFixed(1) + ' KB' });
     }
     e.target.value = '';
+  };
+
+  const handleClearMedia = () => {
+    setPendingFile(null);
+    setMediaPreview(null);
   };
 
   const toggleReaction = (msgId, emoji) => {
@@ -465,9 +602,7 @@ export default function CampusChat() {
   const getMessages = () => activeChat === 'general' ? generalMessages : (dmMessages[activeChat] || []);
   const activeUser = activeChat !== 'general' ? students.find(s => s.id === activeChat) : null;
   const onlineStudents = students.filter(s => s.online);
-  // DM history uses string UUIDs as keys — keep them as strings
   const dmHistoryIds = Object.keys(dmMessages);
-  // Deduplicate students by id before sorting (prevents same user appearing twice in DM list)
   const uniqueStudents = [...new Map(students.map(s => [s.id, s])).values()];
   const sidebarStudents = uniqueStudents.sort((a, b) => {
     const aH = dmHistoryIds.includes(String(a.id)), bH = dmHistoryIds.includes(String(b.id));
@@ -478,12 +613,20 @@ export default function CampusChat() {
   const getSenderInfo = (msg) => {
     const isMe = msg.senderId === user?.id;
     if (isMe) return { sender: { ...user, name: 'You' }, isMe: true };
-    // Prefer sender data joined from DB (msg.sender), fall back to students list
     const sender = msg.sender || students.find(s => s.id === msg.senderId) || activeUser;
     return { sender, isMe: false };
   };
 
   const messages = getMessages();
+
+  // Build typing indicator label
+  const typingLabel = typingUsers.length === 1
+    ? `${typingUsers[0].name} is typing...`
+    : typingUsers.length === 2
+    ? `${typingUsers[0].name} and ${typingUsers[1].name} are typing...`
+    : typingUsers.length > 2
+    ? 'Several people are typing...'
+    : null;
 
   return (
     <div className="flex h-[85vh] bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-3xl overflow-hidden animate-[slideIn_0.3s_ease-out]">
@@ -588,12 +731,12 @@ export default function CampusChat() {
         <div ref={chatAreaRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 relative">
           {messages.map(msg => {
             const { sender, isMe } = getSenderInfo(msg);
-            // Provide fallback rather than hiding the message entirely
             const resolvedSender = sender || { name: 'Unknown User', avatar: '🎓', faction: null };
             const hasFaction = !isMe ? factions[resolvedSender.faction] : factions[user?.faction];
+            const isOptimistic = !!msg._optimistic;
 
             return (
-              <div key={msg.id} className={"flex gap-3 w-full max-w-2xl group " + (isMe ? "self-end flex-row-reverse" : "self-start")}>
+              <div key={msg.id} className={"flex gap-3 w-full max-w-2xl group " + (isMe ? "self-end flex-row-reverse" : "self-start") + (isOptimistic ? " opacity-70" : "")}>
                 {/* Avatar */}
                 <div className={"w-9 h-9 shrink-0 rounded-full border-2 flex items-center justify-center text-base bg-[var(--color-gs-card)] mt-1 " + (hasFaction?.border || 'border-[var(--color-gs-border)]')}>
                   {resolvedSender.avatar || '🎓'}
@@ -606,6 +749,7 @@ export default function CampusChat() {
                       {isMe ? 'You' : resolvedSender.name}
                     </span>
                     <span className="text-[10px] text-[var(--color-gs-text-muted)]">{msg.timestamp}</span>
+                    {isOptimistic && <span className="text-[10px] text-[var(--color-gs-text-muted)]">Sending...</span>}
                   </div>
 
                   {/* Reply preview */}
@@ -622,8 +766,11 @@ export default function CampusChat() {
                   {msg.media?.type === 'file' && (
                     <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl mb-1.5 text-xs">
                       <File size={14} className="text-[var(--color-gs-cyan)]" />
-                      <span className="text-[var(--color-gs-text-main)]">{msg.media.name}</span>
-                      <span className="text-[var(--color-gs-text-muted)]">{msg.media.size}</span>
+                      {msg.media.url
+                        ? <a href={msg.media.url} target="_blank" rel="noreferrer" className="text-[var(--color-gs-cyan)] hover:underline">{msg.media.name}</a>
+                        : <span className="text-[var(--color-gs-text-main)]">{msg.media.name}</span>
+                      }
+                      {msg.media.size && <span className="text-[var(--color-gs-text-muted)]">{msg.media.size}</span>}
                     </div>
                   )}
 
@@ -635,18 +782,20 @@ export default function CampusChat() {
                   )}
 
                   {/* Reaction bar (hover) */}
-                  <div className={"flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity " + (isMe ? "flex-row-reverse" : "")}>
-                    {QUICK_REACTIONS.map(emoji => (
-                      <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)}
-                        className="text-base w-7 h-7 rounded-full hover:bg-[var(--color-gs-border)] transition-colors flex items-center justify-center hover:scale-125">
-                        {emoji}
+                  {!isOptimistic && (
+                    <div className={"flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity " + (isMe ? "flex-row-reverse" : "")}>
+                      {QUICK_REACTIONS.map(emoji => (
+                        <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)}
+                          className="text-base w-7 h-7 rounded-full hover:bg-[var(--color-gs-border)] transition-colors flex items-center justify-center hover:scale-125">
+                          {emoji}
+                        </button>
+                      ))}
+                      <button onClick={() => setReplyTo(msg)}
+                        className="p-1 rounded-full hover:bg-[var(--color-gs-border)] transition-colors text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-cyan)]">
+                        <Reply size={14} />
                       </button>
-                    ))}
-                    <button onClick={() => setReplyTo(msg)}
-                      className="p-1 rounded-full hover:bg-[var(--color-gs-border)] transition-colors text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-cyan)]">
-                      <Reply size={14} />
-                    </button>
-                  </div>
+                    </div>
+                  )}
 
                   {/* Existing Reactions */}
                   {Object.keys(msg.reactions).length > 0 && (
@@ -664,21 +813,24 @@ export default function CampusChat() {
             );
           })}
 
-          {/* Typing indicator */}
-          {messages.length > 0 && isTyping && (
-            <div className="self-start flex gap-3">
+          {/* Real typing indicator — shows other users' names */}
+          {typingLabel && (
+            <div className="self-start flex gap-3 items-end">
               <div className="w-9 h-9 rounded-full bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] flex items-center justify-center text-base">
-                {activeUser?.avatar || '?'}
+                {typingUsers[0] ? (students.find(s => s.id === typingUsers[0].userId)?.avatar || '?') : '?'}
               </div>
-              <div className="px-4 py-3 bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-2xl rounded-tl-none flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-[var(--color-gs-text-muted)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 bg-[var(--color-gs-text-muted)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 bg-[var(--color-gs-text-muted)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div>
+                <div className="px-4 py-3 bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-2xl rounded-tl-none flex items-center gap-1.5 mb-1">
+                  <span className="w-1.5 h-1.5 bg-[var(--color-gs-text-muted)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 bg-[var(--color-gs-text-muted)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 bg-[var(--color-gs-text-muted)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <p className="text-[10px] text-[var(--color-gs-text-muted)] pl-1">{typingLabel}</p>
               </div>
             </div>
           )}
 
-          {messages.length === 0 && (
+          {messages.length === 0 && !typingLabel && (
             <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-gs-text-muted)] py-20">
               <MessageSquare size={48} className="mb-4 opacity-40" />
               <p className="text-sm">No messages yet. Say hello! 👋</p>
@@ -714,8 +866,11 @@ export default function CampusChat() {
               ) : (
                 <div className="w-10 h-10 rounded-lg bg-[var(--color-gs-cyan)]/10 flex items-center justify-center"><File size={20} className="text-[var(--color-gs-cyan)]" /></div>
               )}
-              <span className="text-sm text-[var(--color-gs-text-muted)] flex-1 truncate">{mediaPreview.name}</span>
-              <button onClick={() => setMediaPreview(null)} className="text-[var(--color-gs-text-muted)] hover:text-red-400 transition-colors"><X size={16} /></button>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-[var(--color-gs-text-muted)] truncate">{mediaPreview.name}</p>
+                {mediaPreview.size && <p className="text-xs text-[var(--color-gs-text-muted)]">{mediaPreview.size} — will upload to cloud</p>}
+              </div>
+              <button onClick={handleClearMedia} className="text-[var(--color-gs-text-muted)] hover:text-red-400 transition-colors"><X size={16} /></button>
             </div>
           )}
 
@@ -744,9 +899,9 @@ export default function CampusChat() {
                 className="flex-1 bg-transparent border-none px-2 py-2 outline-none text-[var(--color-gs-text-main)] placeholder-[var(--color-gs-text-muted)] text-sm"
               />
 
-              <button type="submit" disabled={!inputVal.trim() && !mediaPreview}
+              <button type="submit" disabled={(!inputVal.trim() && !pendingFile) || isSending}
                 className="p-2.5 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-colors flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_10px_rgba(0,212,255,0.3)]">
-                <Send size={18} />
+                {isSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
               </button>
             </form>
           </div>

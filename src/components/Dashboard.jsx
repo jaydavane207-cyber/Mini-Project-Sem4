@@ -8,10 +8,10 @@ export default function Dashboard() {
   const f = factions[user.faction];
 
   const stats = [
-    { label: 'Active Groups', value: liveStats.activeGroups.toString(), icon: Users, color: 'text-[var(--color-gs-cyan)]' },
-    { label: 'Open Hackathons', value: liveStats.openHackathons.toString(), icon: Target, color: 'text-[var(--color-gs-amber)]' },
-    { label: 'Members Online', value: liveStats.onlineMembers.toString(), icon: Zap, color: 'text-[var(--color-gs-green)]' },
-    { label: 'AI Matches', value: liveStats.aiMatches.toString(), icon: Bot, color: 'text-[var(--color-gs-violet)]' },
+    { label: 'Active Groups', value: (liveStats?.activeGroups ?? 0).toString(), icon: Users, color: 'text-[var(--color-gs-cyan)]' },
+    { label: 'Open Hackathons', value: (liveStats?.openHackathons ?? 0).toString(), icon: Target, color: 'text-[var(--color-gs-amber)]' },
+    { label: 'Members Online', value: (liveStats?.onlineMembers ?? 0).toString(), icon: Zap, color: 'text-[var(--color-gs-green)]' },
+    { label: 'AI Matches', value: (liveStats?.aiMatches ?? 0).toString(), icon: Bot, color: 'text-[var(--color-gs-violet)]' },
   ];
 
   return (
@@ -60,7 +60,7 @@ export default function Dashboard() {
           </div>
           
           {/* Branch Nodes */}
-          {user.skills.slice(0, 3).map((skill, i) => {
+          {(user.skills || []).slice(0, 3).map((skill, i) => {
             const positions = ['left-[25%]', 'left-[50%]', 'left-[75%]'];
             return (
               <div key={skill} className={"absolute bottom-[10%] -translate-x-1/2 z-10 w-16 h-16 rounded-full flex items-center justify-center border-2 border-[var(--color-gs-border)] bg-[var(--color-gs-bg)] hover:border-[var(--color-gs-cyan)] hover:shadow-[0_0_10px_rgba(0,212,255,0.5)] transition-all cursor-crosshair " + positions[i % 3]}>
