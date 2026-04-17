@@ -5,10 +5,11 @@ import {
   Linkedin, Github, Instagram, Twitter, Bell, Lock,
   Trophy, Zap, Check, Settings,
   ChevronRight, MapPin, Phone, Mail, Eye, EyeOff,
-  BarChart2, Clock, CheckCircle, XCircle, Save, X
+  BarChart2, Clock, CheckCircle, XCircle, Save, X, Plus
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import supabase from '../lib/supabase';
+import StrictSkillVerificationModal from './StrictSkillVerificationModal';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ const Toggle = ({ checked, onChange }) => (
 );
 
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
-function OverviewTab({ user, factions, isEditing, formData, setFormData }) {
+function OverviewTab({ user, factions, isEditing, formData, setFormData, onAddSkill }) {
   const { groups } = useAppContext();
   const f = factions[user.faction];
   const FactionIcon = f?.icon || User;
@@ -153,13 +154,26 @@ function OverviewTab({ user, factions, isEditing, formData, setFormData }) {
       {/* Skills & Interests */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-2xl p-6">
-          <h3 className="text-lg font-bold mb-4">Skills</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold">Skills</h3>
+            {!isEditing && (
+              <button
+                id="open-skill-verification-btn"
+                onClick={() => onAddSkill?.()}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-gs-cyan)]/10 border border-[var(--color-gs-cyan)]/30 text-[var(--color-gs-cyan)] rounded-xl text-xs font-semibold hover:bg-[var(--color-gs-cyan)]/20 hover:scale-105 active:scale-95 transition-all shadow-[0_0_10px_rgba(0,212,255,0.1)]"
+              >
+                <Plus size={13} /> Add Skill
+              </button>
+            )}
+          </div>
           {isEditing ? (
             <input type="text" value={(formData.skills || []).join(', ')} onChange={(e) => setFormData({ ...formData, skills: e.target.value.split(',').map(s => s.trim()) })} className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded px-3 py-2 text-[var(--color-gs-text-main)]" placeholder="React, Python, UI/UX (Comma separated)" />
           ) : (
             <div className="flex flex-wrap gap-2">
               {(user.skills && user.skills.length > 0 ? user.skills : ['React', 'Python', 'UI/UX']).map(s => (
-                <span key={s} className="px-3 py-1.5 bg-[var(--color-gs-violet)]/10 border border-[var(--color-gs-violet)]/30 text-[var(--color-gs-violet)] rounded-full text-sm font-medium">{s}</span>
+                <span key={s} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-gs-violet)]/10 border border-[var(--color-gs-violet)]/30 text-[var(--color-gs-violet)] rounded-full text-sm font-medium">
+                  <Shield size={11} className="opacity-60" />{s}
+                </span>
               ))}
             </div>
           )}
@@ -534,11 +548,20 @@ export default function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(user || {});
   const [isSaving, setIsSaving] = useState(false);
+  const [showSkillModal, setShowSkillModal] = useState(false);
 
   // Sync formData with user when user changes (e.g. initial load)
   React.useEffect(() => {
     if (user) setFormData(user);
   }, [user]);
+
+  // Called by StrictSkillVerificationModal when a skill is successfully verified
+  const handleSkillAdded = (skillLabel) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: [...new Set([...(prev.skills || []), skillLabel])]
+    }));
+  };
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
@@ -668,11 +691,18 @@ export default function UserProfile() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'overview' && <OverviewTab user={user} factions={factions} isEditing={isEditing} formData={formData} setFormData={setFormData} />}
+      {activeTab === 'overview' && <OverviewTab user={user} factions={factions} isEditing={isEditing} formData={formData} setFormData={setFormData} onAddSkill={() => setShowSkillModal(true)} />}
       {activeTab === 'events' && <EventsTab />}
       {activeTab === 'teams' && <TeamsTab showToast={showToast} />}
       {activeTab === 'achievements' && <AchievementsTab />}
       {activeTab === 'settings' && <SettingsTab logout={logout} showToast={showToast} />}
+
+      {/* Strict Skill Verification Modal */}
+      <StrictSkillVerificationModal
+        isOpen={showSkillModal}
+        onClose={() => setShowSkillModal(false)}
+        onSkillAdded={handleSkillAdded}
+      />
     </div>
   );
 }

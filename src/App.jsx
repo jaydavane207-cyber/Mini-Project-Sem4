@@ -8,6 +8,7 @@ import CampusChat from './components/CampusChat';
 import Leaderboard from './components/Leaderboard';
 import GroupDetails from './components/GroupDetails';
 import UserProfile from './components/UserProfile';
+import PublicProfileView from './components/PublicProfileView';
 import Home from './components/Home';
 import About from './components/About';
 import Navbar from './components/Navbar';
@@ -153,6 +154,7 @@ export default function GroupSyncApp() {
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/group/:id" element={<GroupDetails />} />
             <Route path="/profile" element={<UserProfile />} />
+            <Route path="/public-profile" element={<PublicProfileView />} />
           </Route>
 
           {/* 404 Page */}

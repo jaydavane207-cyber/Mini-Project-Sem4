@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Hash, Paperclip, Smile, Archive, Slash, Send, Reply, X, ChevronDown, Image, File, Search, Loader2 } from 'lucide-react';
+import { MessageSquare, Hash, Paperclip, Smile, Archive, Slash, Send, Reply, X, ChevronDown, Image, File, Search, Loader2, User } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import supabase from '../lib/supabase';
+import PublicProfileView from './PublicProfileView';
 
 // ─── Emoji Data ───────────────────────────────────────────────────────────────
 const EMOJI_CATEGORIES = {
@@ -95,6 +96,9 @@ export default function CampusChat() {
   const [userSearch, setUserSearch] = useState('');
   // typingUsers: array of { userId, name } — people EXCEPT self who are currently typing
   const [typingUsers, setTypingUsers] = useState([]);
+  // ── Public Profile Modal State ──────────────────────────────────────────────
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileViewUser, setProfileViewUser] = useState(null);
   const chatEndRef = useRef(null);
   const chatAreaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -619,6 +623,42 @@ export default function CampusChat() {
 
   const messages = getMessages();
 
+  // ── Public Profile Click Handler ────────────────────────────────────────────
+  const handleUserProfileClick = async (clickedUser) => {
+    let fetchedSkills = [];
+    try {
+      if (clickedUser.id) {
+        const { data, error } = await supabase
+          .from('verified_skills')
+          .select('skill_label, is_verified, certificate_url')
+          .eq('user_id', clickedUser.id)
+          .eq('is_verified', true);
+
+        if (!error && data) {
+          fetchedSkills = data.map(skill => ({
+            name: skill.skill_label,
+            is_verified: skill.is_verified,
+            certificate_url: skill.certificate_url,
+            // Our DB schema doesn't have a privacy toggle yet, so we assume true to allow viewing
+            is_certificate_public: true,
+          }));
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching verified skills:', err);
+    }
+
+    setProfileViewUser({
+      name: clickedUser.name || clickedUser.fullName || 'Unknown',
+      avatarUrl: clickedUser.avatarUrl || `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(clickedUser.name || 'user')}&backgroundColor=0a0e1a`,
+      department: clickedUser.department || clickedUser.branch || 'Computer Science & Engineering',
+      year: clickedUser.year || '3rd Year',
+      bio: clickedUser.bio || 'GroupSync student — no bio provided yet.',
+      skills: fetchedSkills.length > 0 ? fetchedSkills : (clickedUser.skills || []),
+    });
+    setIsProfileModalOpen(true);
+  };
+
   // Build typing indicator label
   const typingLabel = typingUsers.length === 1
     ? `${typingUsers[0].name} is typing...`
@@ -675,7 +715,12 @@ export default function CampusChat() {
               onClick={() => handleSelectChat(student.id)}
               className={"w-full flex items-center gap-3 p-4 border-b border-[var(--color-gs-border)] transition-colors text-left group border-l-4 " + (activeChat === student.id ? 'bg-[var(--color-gs-cyan)]/5 border-l-[var(--color-gs-cyan)]' : 'border-l-transparent hover:bg-[var(--color-gs-bg)]')}
             >
-              <div className="relative shrink-0">
+              {/* Clickable avatar+name area — opens Public Profile (stopPropagation keeps chat selection intact) */}
+              <div
+                className="relative shrink-0 cursor-pointer hover:scale-110 transition-transform"
+                onClick={(e) => { e.stopPropagation(); handleUserProfileClick(student); }}
+                title={`View ${student.name}'s profile`}
+              >
                 <div className={"w-11 h-11 rounded-full border-2 flex items-center justify-center text-lg bg-[var(--color-gs-card)] " + factions[student.faction]?.border}>
                   {student.avatar}
                 </div>
@@ -683,7 +728,13 @@ export default function CampusChat() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-baseline">
-                  <h3 className="font-bold text-sm text-[var(--color-gs-text-main)] truncate group-hover:text-[var(--color-gs-cyan)] transition-colors">{student.name}</h3>
+                  <h3
+                    className="font-bold text-sm text-[var(--color-gs-text-main)] truncate group-hover:text-[var(--color-gs-cyan)] transition-colors cursor-pointer hover:underline"
+                    onClick={(e) => { e.stopPropagation(); handleUserProfileClick(student); }}
+                    title={`View ${student.name}'s profile`}
+                  >
+                    {student.name}
+                  </h3>
                   <span className="text-[10px] text-[var(--color-gs-text-muted)] shrink-0 ml-1">{student.online ? 'Online' : 'Offline'}</span>
                 </div>
                 <p className="text-xs text-[var(--color-gs-text-muted)] truncate">
@@ -708,14 +759,19 @@ export default function CampusChat() {
               </div>
             </div>
           ) : activeUser ? (
-            <div className="flex items-center gap-3">
-              <div className={"w-9 h-9 rounded-full border-2 flex items-center justify-center bg-[var(--color-gs-bg)] " + factions[activeUser.faction]?.border}>
+            <div
+              className="flex items-center gap-3 cursor-pointer rounded-xl px-2 py-1 -mx-2 -my-1 hover:bg-[var(--color-gs-bg)] transition-colors"
+              onClick={() => handleUserProfileClick(activeUser)}
+              title={`View ${activeUser.name}'s profile`}
+            >
+              <div className={"w-9 h-9 rounded-full border-2 flex items-center justify-center bg-[var(--color-gs-bg)] hover:scale-110 transition-transform " + factions[activeUser.faction]?.border}>
                 {activeUser.avatar}
               </div>
               <div>
-                <h1 className="font-bold">{activeUser.name}</h1>
+                <h1 className="font-bold hover:text-[var(--color-gs-cyan)] transition-colors">{activeUser.name}</h1>
                 <p className={"text-xs " + factions[activeUser.faction]?.color}>{factions[activeUser.faction]?.name}</p>
               </div>
+              <User size={14} className="text-[var(--color-gs-text-muted)] ml-1 opacity-0 group-hover:opacity-100" />
             </div>
           ) : null}
 
@@ -907,6 +963,29 @@ export default function CampusChat() {
           </div>
         </div>
       </div>
+
+      {/* ── Public Profile Modal Overlay ────────────────────────────────────── */}
+      {isProfileModalOpen && profileViewUser && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setIsProfileModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setIsProfileModalOpen(false)}
+              className="absolute -top-3 -right-3 z-10 w-9 h-9 rounded-full bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] flex items-center justify-center text-[var(--color-gs-text-muted)] hover:text-red-400 hover:border-red-500/40 transition-all shadow-lg"
+              title="Close profile"
+            >
+              <X size={18} />
+            </button>
+            <PublicProfileView userProfile={profileViewUser} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
