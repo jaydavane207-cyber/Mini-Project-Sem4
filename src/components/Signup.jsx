@@ -871,12 +871,8 @@ export default function Signup({ onNavigate, initialStep = 1 }) {
 
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[#050810] p-4 relative overflow-hidden">
-      {/* Background glow blobs */}
-      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#00f0ff]/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#a855f7]/10 rounded-full blur-[120px] pointer-events-none" />
-
-      <div className="w-full max-w-lg glass-card border border-white/10 rounded-3xl p-8 z-10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-page-load">
+    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-transparent p-4 relative overflow-hidden">
+      <div className="w-full max-w-lg backdrop-blur-xl bg-[#050810]/60 border border-white/5 rounded-3xl p-8 z-10 shadow-[0_0_40px_rgba(0,0,0,0.3)] animate-page-load">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/20 shadow-[0_0_20px_rgba(0,240,255,0.2)] flex items-center justify-center text-[#00f0ff]">

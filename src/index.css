@@ -50,7 +50,7 @@
 }
 
 html, body {
-  background-color: var(--color-gs-bg);
+  background-color: transparent;
   color: var(--color-gs-text-main);
   font-family: 'DM Sans', sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
