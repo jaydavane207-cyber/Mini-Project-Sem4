@@ -60,6 +60,12 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   font-family: 'Space Grotesk', sans-serif;
 }
 
+option {
+  background-color: var(--color-gs-bg);
+  color: var(--color-gs-text-main);
+}
+
+
 /* ── Custom Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--color-gs-bg); }
@@ -205,6 +211,10 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   background-color: rgba(255, 255, 255, 0.95) !important;
   color: #0f172a !important;
   border-color: rgba(0, 0, 0, 0.15) !important;
+}
+.theme-light option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
 }
 .theme-light input::placeholder,
 .theme-light textarea::placeholder {
