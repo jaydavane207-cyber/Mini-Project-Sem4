@@ -184,22 +184,72 @@ export default function AISuggestions() {
       ) : null}
 
       {/* All Groups Skill Match View */}
-      <div className="bg-gs-card border border-gs-border rounded-3xl p-8">
-        <h2 className="text-xl font-bold mb-6">All Groups: Skill Overlap</h2>
-        <div className="space-y-6">
+      <div className="mt-12 animate-[slideIn_0.3s_ease-out] delay-100 fill-mode-both">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <Sparkles className="text-[var(--color-gs-primary)]" size={24} /> 
+          Skill Overlap Analysis
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {groups.filter(g => g.type !== 'DM' && g.type !== 'General').map(group => {
             const overlap = getOverlapScore(group);
             return (
-              <div key={group.id} className="group cursor-pointer" onClick={() => handleViewGroup(group.id)}>
-                <div className="flex justify-between items-center mb-2">
-                  <p className="font-medium group-hover:text-[var(--color-gs-cyan)] transition-colors">{group.name}</p>
-                  <p className="text-sm text-gs-cyan font-bold">{Math.round(overlap)}% Match</p>
+              <div 
+                key={group.id} 
+                className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-2xl p-6 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 cursor-pointer group dark:hover:shadow-[0_8px_30px_rgba(0,212,255,0.08)]" 
+                onClick={() => handleViewGroup(group.id)}
+              >
+                <div className="flex items-start justify-between mb-4">
+                   <div className="flex-1 pr-4">
+                     <h3 className="font-bold text-[var(--color-gs-text-main)] group-hover:text-[var(--color-gs-primary)] transition-colors line-clamp-1">{group.name}</h3>
+                     <p className="text-xs text-[var(--color-gs-text-muted)] mt-1 flex items-center gap-1">
+                        <Users size={12} /> {group.memberIds?.length || group.members || 1}/{group.maxMembers} Members
+                     </p>
+                   </div>
+                   
+                   {/* Circular Progress Indicator */}
+                   <div className="w-12 h-12 relative flex items-center justify-center shrink-0">
+                      <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
+                        <path
+                          className="text-[var(--color-gs-border)]"
+                          fill="none"
+                          strokeWidth="3.5"
+                          stroke="currentColor"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        <path
+                          className={`${overlap > 50 ? 'text-[var(--color-gs-green)]' : overlap >= 20 ? 'text-[var(--color-gs-primary)]' : 'text-[#a855f7]'}`}
+                          fill="none"
+                          strokeDasharray={`${overlap + 0.1}, 100`}
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          stroke="currentColor"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center font-bold text-xs text-[var(--color-gs-text-main)] drop-shadow-sm">
+                         {Math.round(overlap)}%
+                      </div>
+                   </div>
                 </div>
-                <div className="w-full h-2 bg-gs-border rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gs-cyan shadow-[0_0_10px_rgba(0,212,255,0.6)] transition-all duration-700" 
-                    style={{ width: overlap + '%' }} 
-                  />
+
+                {/* Skill Chips */}
+                <div className="flex flex-wrap gap-1.5 mt-4">
+                   {(group.skills || []).slice(0, 3).map((skill, idx) => {
+                      const hasSkill = (user.skills || []).includes(skill);
+                      return (
+                         <span key={idx} className={`text-[10px] sm:text-xs px-2.5 py-1 rounded-full border font-medium ${hasSkill ? 'border-[var(--color-gs-primary)] bg-[var(--color-gs-primary)]/10 text-[var(--color-gs-primary)]' : 'border-[var(--color-gs-border)] text-[var(--color-gs-text-muted)] bg-[var(--color-gs-border)]/20'}`}>
+                            {skill}
+                         </span>
+                      );
+                   })}
+                   {(group.skills || []).length > 3 && (
+                      <span className="text-[10px] sm:text-xs px-2.5 py-1 rounded-full border border-[var(--color-gs-border)] text-[var(--color-gs-text-muted)] bg-[var(--color-gs-border)]/20 font-medium">
+                        +{(group.skills || []).length - 3}
+                      </span>
+                   )}
+                   {(group.skills || []).length === 0 && (
+                      <span className="text-xs italic text-[var(--color-gs-text-muted)]">No specific skills listed</span>
+                   )}
                 </div>
               </div>
             );

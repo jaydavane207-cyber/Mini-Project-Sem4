@@ -132,3 +132,102 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Light Mode Overrides ─────────────────────────────────────────── */
+.theme-light {
+  /* Base text and backgrounds */
+  --color-gs-text-main: #0f172a;
+  --color-gs-text-muted: #475569;
+  --color-gs-bg: #e8eef7;
+  --color-gs-primary: #0ea5e9;
+  --color-gs-secondary: #8b5cf6;
+  --color-gs-card-bg: rgba(255, 255, 255, 0.85);
+  --color-gs-card-border: rgba(0, 0, 0, 0.1);
+  --color-gs-primary-transparent: rgba(14, 165, 233, 0.1);
+  --color-gs-secondary-transparent: rgba(139, 92, 246, 0.1);
+  --color-gs-overlay: rgba(255, 255, 255, 0.65);
+
+  color: #0f172a;
+  background-color: transparent;
+}
+
+/* All plain white text becomes dark in light mode */
+.theme-light .text-white,
+.theme-light .text-white\/80,
+.theme-light .text-white\/70,
+.theme-light .text-white\/60,
+.theme-light .text-white\/50 {
+  color: #1e293b !important;
+}
+
+/* Muted / secondary text gets a readable dark gray */
+.theme-light .text-gray-400,
+.theme-light .text-gray-500,
+.theme-light .text-slate-400,
+.theme-light .text-\[var\(--color-gs-text-muted\)\] {
+  color: #475569 !important;
+}
+
+/* Cards and glass backgrounds flip to white */
+.theme-light .glass-card,
+.theme-light .bg-gs-card {
+  background-color: rgba(255, 255, 255, 0.90) !important;
+  border: 1px solid rgba(0, 0, 0, 0.10) !important;
+  backdrop-filter: blur(40px) saturate(180%) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Generic opaque dark containers become white */
+.theme-light [class*="bg-white/"],
+.theme-light [class*="bg-black/"] {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(10px);
+}
+
+/* Sidebar adopts gs-card token naturally in light mode */
+.theme-light aside {
+  background: transparent !important;
+}
+
+.theme-light aside .text-white {
+  color: var(--color-gs-text-main) !important;
+}
+
+/* Borders */
+.theme-light [class*="border-white/"] {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Input fields */
+.theme-light input,
+.theme-light textarea,
+.theme-light select {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+.theme-light input::placeholder,
+.theme-light textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Scrollbar in light mode */
+.theme-light ::-webkit-scrollbar-track { background: #e2e8f0; }
+.theme-light ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-color: rgba(0,0,0,0.05); }
+.theme-light ::-webkit-scrollbar-thumb:hover { background: #0891b2; }
+
+/* ── Toggle Switch Styles ─────────────────────────────────────────── */
+.toggle-track-off {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+.theme-light .toggle-track-off {
+  background-color: rgba(0, 0, 0, 0.15);
+}
+.toggle-thumb {
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.theme-light .toggle-thumb {
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}

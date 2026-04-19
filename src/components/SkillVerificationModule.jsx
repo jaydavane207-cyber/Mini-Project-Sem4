@@ -260,14 +260,14 @@ function Toggle({ checked, onChange, label, description }) {
         aria-checked={checked}
         role="switch"
         className={
-          'relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gs-cyan)] ' +
-          (checked ? 'bg-[var(--color-gs-cyan)]' : 'bg-[var(--color-gs-border)]')
+          'relative flex items-center w-11 h-6 rounded-full transition-colors duration-300 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gs-cyan)] border border-[var(--color-gs-card-border)] ' +
+          (checked ? 'bg-[var(--color-gs-primary)]' : 'toggle-track-off')
         }
       >
         <div
           className={
-            'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200 ' +
-            (checked ? 'left-6' : 'left-0.5')
+            'w-5 h-5 rounded-full transition-all duration-300 toggle-thumb ' +
+            (checked ? 'translate-x-[21px] bg-white' : 'translate-x-[1px] bg-white/90')
           }
         />
       </button>

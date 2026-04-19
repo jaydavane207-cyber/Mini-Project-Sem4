@@ -35,14 +35,14 @@ export default function Sidebar() {
   return (
     <>
       {/* ── Desktop Sidebar ─────────────────────────────────────────────── */}
-      <aside className="w-56 fixed left-0 top-0 h-screen border-r border-white/5 bg-[#050810]/95 flex-col justify-between hidden md:flex transition-all duration-300 z-40 relative backdrop-blur-[20px]">
+      <aside className="w-56 fixed left-0 top-0 h-screen border-r border-gs-border bg-gs-card flex-col justify-between hidden md:flex transition-all duration-300 z-40 backdrop-blur-[20px]">
         <div>
           {/* Logo */}
           <div className="p-6 flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
             <div className="w-8 h-8 rounded-lg bg-transparent border border-[var(--color-gs-primary)] shadow-[0_0_10px_rgba(0,240,255,0.3)] flex flex-col items-center justify-center text-[var(--color-gs-primary)]">
               <Zap size={20} />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-white font-heading">
+            <h1 className="text-xl font-bold tracking-tight text-gs-text-main font-heading">
               Group<span className="text-[var(--color-gs-primary)] text-glow-cyan">Sync</span>
             </h1>
           </div>
@@ -74,12 +74,27 @@ export default function Sidebar() {
         </div>
 
         <div className="flex flex-col gap-2 pb-4">
+          {/* Theme Toggle */}
+          <div className="px-3 mb-2">
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative group w-full text-left overflow-hidden text-[var(--color-gs-text-muted)] hover:bg-white/5 hover:text-white"
+            >
+              <div className="relative z-10 opacity-70 group-hover:opacity-100 transition-opacity">
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              </div>
+              <span className="font-medium text-sm relative z-10 w-full truncate">
+                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              </span>
+            </button>
+          </div>
+
           {/* User Info Bottom */}
           {user && (
             <div className="px-4 relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="w-full flex items-center gap-3 p-3 glass-card hover:border-[#00f0ff] transition-colors cursor-pointer group text-left"
+                className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-2xl hover:border-[#00f0ff] transition-colors cursor-pointer group text-left"
               >
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-xl border border-white/10 group-hover:border-[#00f0ff] transition-colors">
                   {user.avatar || '🎓'}
@@ -95,7 +110,7 @@ export default function Sidebar() {
 
               {/* Dropdown */}
               {showUserMenu && (
-                <div className="absolute bottom-full left-4 right-4 mb-2 glass-card overflow-hidden shadow-2xl z-50">
+                <div className="absolute bottom-full left-4 right-4 mb-2 bg-gs-card backdrop-blur-md border border-gs-border rounded-xl overflow-hidden shadow-2xl z-50">
                   <button
                     onClick={() => { navigate('/profile'); setShowUserMenu(false); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/5 transition-colors"

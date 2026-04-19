@@ -42,11 +42,11 @@ const PublicLayout = () => {
 };
 
 const ProtectedLayout = () => {
-  const { user, isInitializingAuth } = useAppContext();
+  const { user, isInitializingAuth, theme } = useAppContext();
 
   if (isInitializingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gs-bg text-gs-cyan">
+      <div className="min-h-screen flex items-center justify-center text-gs-cyan">
         <Loader2 className="w-12 h-12 animate-spin" />
       </div>
     );
@@ -62,10 +62,10 @@ const ProtectedLayout = () => {
   }
 
   return (
-    <div className="flex bg-gs-bg min-h-screen">
+    <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto min-h-screen p-8 ml-0 md:ml-56">
-        <div className="max-w-7xl mx-auto backdrop-blur-sm rounded-3xl pb-10">
+      <main className="flex-1 overflow-y-auto min-h-screen p-4 md:p-8 ml-0 md:ml-56 relative z-10">
+        <div className={`w-full backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] rounded-3xl p-6 md:p-10 min-h-[85vh] text-gs-text-main ${theme === 'light' ? 'bg-white/40 border border-white/60' : 'bg-[#050810]/60 border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.3)]'}`}>
           <Outlet />
         </div>
       </main>
@@ -91,7 +91,7 @@ export default function GroupSyncApp() {
 
   return (
     <BrowserRouter>
-      <div className={`min-h-screen text-gs-text-main font-sans selection:bg-gs-cyan selection:text-gs-text-main bg-gs-bg theme-${theme}`}>
+      <div className={`min-h-screen text-gs-text-main font-sans selection:bg-gs-cyan selection:text-gs-text-main theme-${theme}`}>
         {toast && (
           <div className={`fixed bottom-4 right-4 z-50 animate-[slideIn_0.3s_ease-out] bg-gs-card p-4 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.5)] flex items-center gap-3 border ${
             toast.type === 'error' ? 'border-red-500/50' : 'border-gs-border'
@@ -166,7 +166,7 @@ export default function GroupSyncApp() {
 }
 
 const NotFoundPage = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-gs-bg text-center p-8">
+  <div className="min-h-screen flex flex-col items-center justify-center text-center p-8">
     <div className="relative mb-8">
       <span className="text-[120px] font-black text-gs-border select-none">404</span>
       <div className="absolute inset-0 flex items-center justify-center">

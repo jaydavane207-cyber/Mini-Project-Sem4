@@ -333,13 +333,13 @@ export default function PublicProfileView({ userProfile = MOCK_USER_PROFILE }) {
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-[#050810] overflow-hidden text-white sm:py-10">
+    <div className="relative w-full bg-gs-bg overflow-hidden text-gs-text-main">
       {/* Background Layers */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[rgba(168,85,247,0.15)] rounded-full blur-[120px] pointer-events-none -translate-y-1/4 translate-x-1/4" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[rgba(0,240,255,0.10)] rounded-full blur-[100px] pointer-events-none translate-y-1/4 -translate-x-1/4" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gs-secondary/10 rounded-full blur-[120px] pointer-events-none -translate-y-1/4 translate-x-1/4" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gs-primary/5 rounded-full blur-[100px] pointer-events-none translate-y-1/4 -translate-x-1/4" />
       
       {/* Subtle grid pattern overlay */}
-      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(rgba(255,255,255,0.03) 0 1px, transparent 1px 40px), repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 40px)' }} />
+      <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(var(--color-gs-border) 0 1px, transparent 1px 40px), repeating-linear-gradient(90deg, var(--color-gs-border) 0 1px, transparent 1px 40px)' }} />
 
       {/* Floating Animated Particles */}
       <FloatingParticles />
@@ -350,54 +350,56 @@ export default function PublicProfileView({ userProfile = MOCK_USER_PROFILE }) {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 max-w-2xl mx-auto"
       >
-        <div className="relative bg-[#050810]/70 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl shadow-black/80">
+        <div className="relative bg-gs-card backdrop-blur-3xl border border-gs-border rounded-[2.5rem] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.1)] shadow-black/20 dark:shadow-black/60">
+          <div className="absolute inset-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] pointer-events-none rounded-[2.5rem]" />
 
           {/* ── Decorative header gradient (Hero Banner) ──────────────────────────── */}
-          <div className="relative h-40 overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(0,240,255,0.1))' }}>
+          <div className="relative h-44 overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--color-gs-secondary-transparent), var(--color-gs-primary-transparent))' }}>
             <div
-              className="absolute inset-0 opacity-5"
+              className="absolute inset-0 opacity-10"
               style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23ffffff' stroke-width='1'/%3E%3C/svg%3E")`,
-                backgroundSize: '40px 40px',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='currentColor' stroke-width='1.5'/%3E%3C/svg%3E")`,
+                backgroundSize: '30px 30px',
               }}
             />
 
-            <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white uppercase tracking-widest">
-              <Eye size={11} className="text-[#00f0ff]" />
+            <div className="absolute top-6 right-6 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gs-bg border border-gs-border backdrop-blur-md text-[10px] font-black text-gs-text-main uppercase tracking-[0.2em] shadow-sm">
+              <Eye size={12} className="text-gs-primary drop-shadow-[0_0_5px_currentColor]" />
               Public Profile
             </div>
           </div>
 
           {/* ── Avatar (overlapping header) ────────────────────────── */}
-          <div className="relative px-8 -mt-16 pb-0 flex items-center">
+          <div className="relative px-8 -mt-20 pb-0 flex items-center">
             {/* Glowing orb behind avatar */}
-            <div className="absolute left-8 top-0 -mt-10 w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.3), transparent 70%)', filter: 'blur(40px)' }} />
+            <div className="absolute left-8 top-0 -mt-10 w-[200px] h-[200px] rounded-full pointer-events-none opacity-40" style={{ background: 'radial-gradient(circle, var(--color-gs-secondary), transparent 70%)', filter: 'blur(50px)' }} />
 
             <div className="relative inline-block z-10">
-              <style>{`.conic-border { animation: spin-conic 3s linear infinite; } @keyframes spin-conic { 100% { transform: rotate(360deg); } }`}</style>
+              <style>{`.conic-border { animation: spin-conic 4s linear infinite; } @keyframes spin-conic { 100% { transform: rotate(360deg); } }`}</style>
               
-              <div className="relative w-32 h-32 rounded-2xl p-[3px] overflow-hidden shadow-2xl shadow-[rgba(0,240,255,0.2)]">
-                <div className="absolute inset-[-50%] conic-border" style={{ background: 'conic-gradient(from 0deg, transparent 0%, #00f0ff 25%, #a855f7 50%, transparent 75%)' }} />
-                <div className="absolute inset-[3px] bg-[#050810] rounded-xl z-0" />
+              <div className="relative w-36 h-36 rounded-3xl p-[3px] overflow-hidden shadow-2xl shadow-gs-primary/20 bg-gs-bg border border-gs-border/50">
+                <div className="absolute inset-0 bg-gs-bg z-0" />
+                <div className="absolute inset-[-50%] conic-border opacity-60" style={{ background: 'conic-gradient(from 0deg, transparent 0%, var(--color-gs-primary) 25%, var(--color-gs-secondary) 50%, transparent 75%)' }} />
+                <div className="absolute inset-[3px] bg-gs-bg rounded-[calc(1.5rem-3px)] z-[5]" />
                 <img
                   src={userProfile.avatarUrl}
                   alt={`${userProfile.name}'s avatar`}
-                  className="relative z-10 w-full h-full object-cover rounded-xl"
+                  className="relative z-10 w-full h-full object-cover rounded-[calc(1.5rem-3px)] scale-105"
                   loading="lazy"
                 />
               </div>
-              <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-[#10b981] border-[3px] border-[#050810] flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.5)] z-20">
-                <ShieldCheck size={14} className="text-[#050810]" />
+              <div className="absolute -bottom-1 -right-1 w-9 h-9 rounded-2xl bg-gs-green border-[4px] border-gs-bg flex items-center justify-center shadow-lg shadow-gs-green/30 z-20">
+                <ShieldCheck size={16} className="text-white drop-shadow-sm" />
               </div>
             </div>
           </div>
 
           {/* ── Identity Block ─────────────────────────────────────── */}
-          <div className="px-8 pt-4 pb-6">
+          <div className="px-10 pt-6 pb-8">
             <h1
-              className="text-3xl font-extrabold tracking-tight mb-1"
+              className="text-4xl font-black tracking-tighter mb-2"
               style={{
-                background: 'linear-gradient(135deg, #f0f4ff 0%, #00d4ff 50%, #7c3aed 100%)',
+                background: 'linear-gradient(135deg, var(--color-gs-text-main) 0%, var(--color-gs-primary) 50%, var(--color-gs-secondary) 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -406,45 +408,45 @@ export default function PublicProfileView({ userProfile = MOCK_USER_PROFILE }) {
               {userProfile.name}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-3 mt-2">
-              <span className="inline-flex items-center gap-1.5 text-sm text-[var(--color-gs-text-muted)]">
-                <GraduationCap size={14} className="text-[var(--color-gs-violet)]" />
+            <div className="flex flex-wrap items-center gap-4 mt-1">
+              <span className="inline-flex items-center gap-2 text-sm font-bold text-gs-text-muted uppercase tracking-wider">
+                <GraduationCap size={15} className="text-gs-violet" />
                 {userProfile.department}
               </span>
-              <span className="w-1 h-1 rounded-full bg-[var(--color-gs-border)]" />
-              <span className="inline-flex items-center gap-1.5 text-sm text-[var(--color-gs-text-muted)]">
-                <Clock size={14} className="text-[var(--color-gs-amber)]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-gs-border" />
+              <span className="inline-flex items-center gap-2 text-sm font-bold text-gs-text-muted uppercase tracking-wider">
+                <Clock size={15} className="text-gs-amber" />
                 {userProfile.year}
               </span>
             </div>
           </div>
 
           {/* ── Divider ────────────────────────────────────────────── */}
-          <div className="mx-8 h-px bg-gradient-to-r from-transparent via-[var(--color-gs-border)] to-transparent" />
+          <div className="mx-10 h-px bg-gradient-to-r from-transparent via-gs-border to-transparent" />
 
           {/* ── About Me ───────────────────────────────────────────── */}
-          <div className="px-8 py-6">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[var(--color-gs-text-muted)] mb-3 flex items-center gap-2">
-              <Sparkles size={13} className="text-[var(--color-gs-amber)]" />
-              About Me
+          <div className="px-10 py-8">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gs-text-muted mb-4 flex items-center gap-2 opacity-60">
+              <Sparkles size={14} className="text-gs-amber drop-shadow-[0_0_5px_currentColor]" />
+              Mission Brief
             </h2>
-            <p className="text-[var(--color-gs-text-muted)] text-sm leading-relaxed">
+            <p className="text-gs-text-muted text-[15px] leading-relaxed font-medium">
               {userProfile.bio}
             </p>
           </div>
 
           {/* ── Divider ────────────────────────────────────────────── */}
-          <div className="mx-8 h-px bg-gradient-to-r from-transparent via-[var(--color-gs-border)] to-transparent" />
+          <div className="mx-10 h-px bg-gradient-to-r from-transparent via-gs-border to-transparent" />
 
           {/* ── Skills Showcase ─────────────────────────────────────── */}
-          <div className="px-8 py-6 pb-8">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-[var(--color-gs-text-muted)] flex items-center gap-2">
-                <ShieldCheck size={13} className="text-[var(--color-gs-green)]" />
-                Verified Skills
+          <div className="px-10 py-8 pb-10">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gs-text-muted flex items-center gap-2 opacity-60">
+                <ShieldCheck size={14} className="text-gs-green drop-shadow-[0_0_5px_currentColor]" />
+                Valid Tech Vectors
               </h2>
-              <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-[var(--color-gs-green)]/10 text-[var(--color-gs-green)] border border-[var(--color-gs-green)]/20">
-                {verifiedSkills.length} verified
+              <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-gs-green/10 text-gs-green border border-gs-green/20 shadow-inner">
+                {verifiedSkills.length} SECURED
               </span>
             </div>
 
@@ -460,8 +462,8 @@ export default function PublicProfileView({ userProfile = MOCK_USER_PROFILE }) {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-[var(--color-gs-text-muted)] text-sm">
-                No verified skills to display.
+              <div className="text-center py-10 text-gs-text-muted font-bold opacity-50 text-sm">
+                No active signature signature signatures signatures to showcase.
               </div>
             )}
 
@@ -471,16 +473,16 @@ export default function PublicProfileView({ userProfile = MOCK_USER_PROFILE }) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
-                className="text-[11px] text-[var(--color-gs-text-muted)]/60 mt-4 flex items-center gap-1.5"
+                className="text-[10px] font-black uppercase tracking-widest text-gs-text-muted opacity-40 mt-6 flex items-center gap-2"
               >
-                <FileText size={11} />
-                Click a skill badge to view its public certificate
+                <FileText size={12} />
+                Select vector badge to initiate credential sync
               </motion.p>
             )}
           </div>
 
           {/* ── Bottom accent bar ──────────────────────────────────── */}
-          <div className="h-1 bg-gradient-to-r from-[var(--color-gs-cyan)] via-[var(--color-gs-violet)] to-[var(--color-gs-green)]" />
+          <div className="h-2 bg-gradient-to-r from-gs-primary via-gs-secondary to-gs-green opacity-80" />
         </div>
       </motion.div>
 

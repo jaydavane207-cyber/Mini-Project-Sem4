@@ -182,156 +182,180 @@ export default function BrowseGroups() {
   return (
     <>
       <div className="space-y-8 animate-page-load">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-4xl font-bold font-heading text-white">Browse Groups</h1>
-          <p className="text-[var(--color-gs-text-muted)] mt-2">Find your next team or start your own.</p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+          <div>
+            <h1 className="text-4xl lg:text-5xl font-black font-heading text-gs-text-main tracking-tight drop-shadow-sm flex items-center gap-3">
+              Browse Groups
+            </h1>
+            <p className="text-gs-text-muted mt-2 text-lg font-medium">Find your next team or start your own vanguard.</p>
+          </div>
+          <button onClick={() => setIsModalOpen(true)} className="px-6 py-3 bg-gradient-to-r from-gs-primary to-gs-secondary text-white font-bold rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,240,255,0.3)] flex items-center gap-2">
+            <Sparkles size={20} className="drop-shadow-[0_0_8px_currentColor]" /> Create Group
+          </button>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="px-6 py-3 bg-gradient-to-r from-[#00f0ff] to-[#a855f7] text-white font-bold rounded-xl hover:opacity-90 transition-all shadow-[0_0_20px_rgba(0,240,255,0.3)] btn-scale flex items-center gap-2">
-          <Sparkles size={18} /> Create Group
-        </button>
-      </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col md:flex-row gap-4 items-center glass-card p-2 rounded-2xl">
-        <div className="flex-1 w-full pl-4 pr-2 py-2 flex items-center gap-3">
-          <Compass className="text-[var(--color-gs-text-muted)]" size={20} />
-          <input 
-            type="text" 
-            placeholder="Search groups or events..." 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-            className="w-full bg-transparent border-none outline-none text-[var(--color-gs-text-main)] placeholder-gray-500"
-          />
+        {/* Filters & Search */}
+        <div className="flex flex-col md:flex-row gap-4 items-center bg-gs-card border border-gs-border p-3 rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative z-10">
+          <div className="flex-1 w-full pl-5 pr-3 py-2 flex items-center gap-3">
+            <Compass className="text-gs-text-muted" size={24} />
+            <input 
+              type="text" 
+              placeholder="Search groups or events..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+              className="w-full bg-transparent border-none outline-none text-gs-text-main placeholder-opacity-50 placeholder-gs-text-muted font-medium text-lg"
+            />
+          </div>
+          <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 px-2">
+            {['All', 'Hackathon', 'Technical', 'Cultural'].map(type => (
+              <button 
+                key={type} 
+                onClick={() => setFilterType(type)}
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] ${filterType === type ? 'bg-gs-primary/20 text-gs-primary border border-gs-primary/50 shadow-[0_0_20px_rgba(0,240,255,0.2)]' : 'bg-gs-bg text-gs-text-muted hover:text-gs-text-main border border-gs-border hover:border-white/20'}`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 px-2">
-          {['All', 'Hackathon', 'Technical', 'Cultural'].map(type => (
-            <button 
-              key={type} 
-              onClick={() => setFilterType(type)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${filterType === type ? 'bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/50 shadow-[0_0_10px_rgba(0,240,255,0.2)]' : 'bg-transparent text-[var(--color-gs-text-muted)] hover:text-white border border-transparent hover:border-white/10 hover:bg-white/5'}`}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-      </div>
 
-      {/* Group Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredGroups.map(group => {
-          const typeColors = {
-            'Hackathon': 'text-[var(--color-gs-cyan)] bg-[var(--color-gs-cyan)]/10 border border-[var(--color-gs-cyan)]/30',
-            'Technical': 'text-[var(--color-gs-violet)] bg-[var(--color-gs-violet)]/10 border border-[var(--color-gs-violet)]/30',
-            'Cultural': 'text-[var(--color-gs-amber)] bg-[var(--color-gs-amber)]/10 border border-[var(--color-gs-amber)]/30'
-          };
-          const badgeClass = typeColors[group.type] || typeColors['Technical'];
-          const isFull = group.members >= group.maxMembers;
+        {/* Group Cards Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
+          {filteredGroups.map(group => {
+            const typeColors = {
+              'Hackathon': 'text-gs-cyan bg-gs-cyan/10 border-gs-cyan/30',
+              'Technical': 'text-gs-violet bg-gs-violet/10 border-gs-violet/30',
+              'Cultural': 'text-gs-amber bg-gs-amber/10 border-gs-amber/30'
+            };
+            const badgeClass = typeColors[group.type] || typeColors['Technical'];
+            const isFull = group.members >= group.maxMembers;
 
-          return (
-            <div key={group.id} className="glass-card rounded-2xl overflow-hidden transition-all duration-300 hover:translate-y-[-4px] hover:border-[#00f0ff]/30 hover:shadow-[0_10px_30px_rgba(0,240,255,0.1)] flex flex-col h-full group">
-              <div className="p-6 flex-1 flex flex-col">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold font-heading text-white">{group.name}</h3>
-                    <p className="text-sm text-[var(--color-gs-text-muted)]">{group.event}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
-                    {group.privacy === 'private' && (
-                      <span className={"px-3 py-1 rounded-full text-xs font-bold border border-gray-600 text-gray-400"}>Private</span>
-                    )}
-                    <span className={"px-3 py-1 rounded-full text-xs font-bold " + badgeClass}>{group.type}</span>
-                  </div>
-                </div>
-
-                {group.poster_url && (
-                  <div className="w-full h-56 shrink-0 mb-6 rounded-xl overflow-hidden border border-white/5 bg-black/40 relative group-hover:shadow-[0_0_20px_rgba(0,240,255,0.15)] transition-shadow">
-                    <img 
-                      src={group.poster_url} 
-                      alt={`${group.name} poster`} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#050810]/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                )}
-
-                <p className="text-[var(--color-gs-text-muted)] text-sm mb-6 flex-1">{group.description}</p>
+            return (
+              <div key={group.id} className="group relative rounded-[2.5rem] p-[1.5px] overflow-hidden cursor-pointer transition-all duration-500 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] hover:-translate-y-2 flex flex-col h-full bg-gs-card">
+                <div className="absolute inset-0 bg-gradient-to-br from-gs-border via-transparent to-gs-border opacity-50 group-hover:opacity-100 group-hover:from-gs-primary group-hover:via-gs-secondary group-hover:to-gs-primary transition-all duration-700" />
                 
-                <div className="mb-6">
-                  <p className="text-xs text-[var(--color-gs-text-muted)] uppercase font-bold mb-2 tracking-wider">Skills Needed</p>
-                  <div className="flex flex-wrap gap-2">
-                    {group.skills.map(skill => (
-                      <span key={skill} className="px-2 py-1 bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-md text-xs text-[var(--color-gs-text-muted)]">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                <div className="relative h-full bg-gs-bg backdrop-blur-xl rounded-[calc(2.5rem-1px)] border border-gs-border p-6 md:p-8 flex flex-col shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] overflow-hidden">
+                   {/* Background Decorative Mesh */}
+                   <div className="absolute -top-10 -right-10 w-48 h-48 bg-gs-primary/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-gs-primary/20 transition-all duration-700" />
+                   
+                   <div className="relative z-10 flex-1 flex flex-col h-full">
+                     <div className="flex justify-between items-start mb-5">
+                       <div>
+                         <h3 className="text-2xl font-black font-heading text-gs-text-main mb-1 line-clamp-1">{group.name}</h3>
+                         <p className="text-sm font-bold text-gs-primary tracking-wide uppercase">{group.event}</p>
+                       </div>
+                       <div className="flex flex-col items-end gap-2 shrink-0 ml-4">
+                         {group.privacy === 'private' && (
+                           <span className="px-3 py-1 rounded-full text-[10px] sm:text-xs font-black border border-gs-border bg-gs-bg text-gs-text-muted uppercase tracking-widest shadow-inner">Private</span>
+                         )}
+                         <span className={"px-3 py-1 rounded-full text-[10px] sm:text-xs font-black border uppercase tracking-widest shadow-inner " + badgeClass}>{group.type}</span>
+                       </div>
+                     </div>
 
-              <div className="mt-auto">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-[var(--color-gs-text-muted)]">{`Members (${group.members}${group.maxMembers ? '/' + group.maxMembers : ''})`}</span>
-                  <div className="flex -space-x-2">
-                    {Array.from({length: group.members}).map((_, i) => (
-                      <div key={i} className="w-8 h-8 rounded-full bg-[var(--color-gs-border)] border-2 border-[var(--color-gs-card)] flex items-center justify-center text-xs">
-                        {ONBOARDING_AVATARS[i % ONBOARDING_AVATARS.length]}
-                      </div>
-                    ))}
-                  </div>
+                     {group.poster_url && (
+                       <div className="w-full h-56 shrink-0 mb-6 rounded-2xl overflow-hidden border border-gs-border/50 bg-black/40 relative group-hover:shadow-[0_0_20px_rgba(0,240,255,0.15)] transition-all basis-auto">
+                         <img 
+                           src={group.poster_url} 
+                           alt={`${group.name} poster`} 
+                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                         />
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                       </div>
+                     )}
+
+                     <p className="text-gs-text-muted text-sm md:text-base font-medium mb-6 flex-1 line-clamp-3">{group.description}</p>
+                     
+                     <div className="mb-8">
+                       <p className="text-[10px] sm:text-xs text-gs-text-muted/70 uppercase font-black mb-3 tracking-widest">Target Skills</p>
+                       <div className="flex flex-wrap gap-2">
+                         {group.skills.map(skill => (
+                           <span key={skill} className="px-3 py-1.5 bg-gs-card border border-gs-border rounded-lg text-[11px] sm:text-xs font-bold text-gs-text-muted shadow-inner group-hover:border-gs-primary/30 group-hover:text-gs-text-main transition-colors">
+                             {skill}
+                           </span>
+                         ))}
+                       </div>
+                     </div>
+
+                     <div className="mt-auto">
+                       <div className="flex justify-between items-center mb-4">
+                         <span className="text-xs sm:text-sm font-bold text-gs-text-muted uppercase tracking-wider">{`Occupancy (${group.members}${group.maxMembers ? '/' + group.maxMembers : ''})`}</span>
+                         <div className="flex -space-x-3">
+                           {Array.from({length: Math.min(group.members, 5)}).map((_, i) => (
+                             <div key={i} className="w-10 h-10 rounded-full bg-gs-bg border-2 border-white/10 flex items-center justify-center text-sm shadow-md drop-shadow-md z-10 hover:z-20 hover:scale-110 transition-transform">
+                               {ONBOARDING_AVATARS[i % ONBOARDING_AVATARS.length]}
+                             </div>
+                           ))}
+                           {group.members > 5 && (
+                             <div className="w-10 h-10 rounded-full bg-gs-border border-2 border-white/10 flex items-center justify-center text-xs font-bold shadow-md z-10 text-gs-text-main">
+                               +{group.members - 5}
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                       
+                       <div className="w-full h-2.5 bg-gs-card rounded-full overflow-hidden mb-6 shadow-inner border border-white/5">
+                         <div className="h-full bg-gradient-to-r from-gs-primary to-gs-secondary transition-all shadow-[0_0_10px_currentColor] relative" style={{ width: ((group.members / group.maxMembers) * 100) + '%' }}>
+                            <div className="absolute inset-0 bg-white/20 w-full h-full animate-pulse" />
+                         </div>
+                       </div>
+                       
+                       <button 
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           if (group.isFallback) {
+                             showToast('This is a sample group. Create or join a real group!', 'info');
+                             return;
+                           }
+                           setSelectedGroupId(group.id);
+                           navigate(`/group/${group.id}`);
+                         }}
+                         className="w-full py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-all bg-gs-card shadow-inner border border-gs-border text-gs-text-main group-hover:border-gs-primary group-hover:text-gs-primary group-hover:bg-gs-primary/5 hover:scale-[1.02] active:scale-95"
+                       >
+                         {group.isFallback ? 'Sample Preview' : 'Initiate Sync'}
+                       </button>
+                     </div>
+                   </div>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden mb-4">
-                  <div className="h-full bg-gradient-to-r from-[#00f0ff] to-[#a855f7] transition-all" style={{ width: ((group.members / group.maxMembers) * 100) + '%' }} />
-                </div>
-                
-                <button 
-                  onClick={() => {
-                    if (group.isFallback) {
-                      showToast('This is a sample group. Create or join a real group!', 'info');
-                      return;
-                    }
-                    setSelectedGroupId(group.id);
-                    navigate(`/group/${group.id}`);
-                  }}
-                  className="w-full py-3 rounded-xl font-bold transition-all bg-white/5 border border-white/10 hover:border-[#00f0ff] hover:text-[#00f0ff] hover:bg-[#00f0ff]/5 btn-scale text-white"
-                >
-                  {group.isFallback ? 'Sample Group' : 'View Group'}
-                </button>
               </div>
-              </div>{/* end inner content wrapper */}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Create Group Modal via Portal - renders at document.body to escape layout containers */}
+      {/* Create Group Modal via Portal */}
       {isModalOpen && ReactDOM.createPortal(
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-[slideInUp_0.2s_ease-out]"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[9999] flex items-center justify-center p-4 sm:p-6 animate-[slideInUp_0.2s_ease-out]"
           onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false); }}
         >
-          <div className="glass-card border border-white/10 rounded-3xl p-8 max-w-lg w-full shadow-[0_0_50px_rgba(0,0,0,0.8)] max-h-[90vh] overflow-y-auto custom-scrollbar relative">
-            <div className="absolute top-0 right-0 p-6 pointer-events-none">
-               <div className="w-32 h-32 bg-[#00f0ff]/10 rounded-full blur-3xl" />
-            </div>
-            <div className="flex justify-between items-center mb-6 relative z-10">
-              <h2 className="text-2xl font-bold font-heading text-white">Create Group</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-[var(--color-gs-text-muted)] hover:text-white transition-colors pointer-events-auto"><X size={24} /></button>
+          <div className="bg-gs-card border border-gs-border rounded-[2.5rem] p-6 sm:p-10 max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar relative shadow-[0_20px_60px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)]">
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-gs-primary/10 rounded-full blur-[100px] pointer-events-none" />
+            
+            <div className="flex justify-between items-center mb-8 relative z-10">
+              <h2 className="text-3xl font-black font-heading text-gs-text-main tracking-tight flex items-center gap-3">
+                 <Sparkles className="text-gs-primary" /> Create Vanguard
+              </h2>
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                className="w-10 h-10 rounded-full bg-gs-bg border border-gs-border flex items-center justify-center text-gs-text-muted hover:text-gs-primary hover:border-gs-primary transition-colors shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+              >
+                <X size={20} />
+              </button>
             </div>
             
-            <form onSubmit={handleCreateGroup} className="space-y-4">
+            <form onSubmit={handleCreateGroup} className="space-y-6 relative z-10">
               <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Group Name</label>
-                <input required type="text" value={newGroup.name} onChange={e => setNewGroup({...newGroup, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white" />
+                <label className="block text-xs uppercase tracking-widest text-gs-text-muted mb-2 font-black">Group Name</label>
+                <input required type="text" value={newGroup.name} onChange={e => setNewGroup({...newGroup, name: e.target.value})} className="w-full bg-gs-bg border border-gs-border shadow-inner rounded-xl p-4 outline-none focus:border-gs-primary focus:shadow-[0_0_15px_rgba(0,240,255,0.15)] transition-all text-gs-text-main font-medium" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Event</label>
-                  <input required type="text" value={newGroup.event} onChange={e => setNewGroup({...newGroup, event: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white placeholder-white/30" placeholder="e.g. Hackathon" />
+                  <label className="block text-xs uppercase tracking-widest text-gs-text-muted mb-2 font-black">Event / Scope</label>
+                  <input required type="text" value={newGroup.event} onChange={e => setNewGroup({...newGroup, event: e.target.value})} className="w-full bg-gs-bg border border-gs-border shadow-inner rounded-xl p-4 outline-none focus:border-gs-primary focus:shadow-[0_0_15px_rgba(0,240,255,0.15)] transition-all text-gs-text-main font-medium placeholder-gs-text-muted/50" placeholder="e.g. Meta Hackathon" />
                 </div>
                 <div>
-                  <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Type</label>
-                  <select value={newGroup.type} onChange={e => setNewGroup({...newGroup, type: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white appearance-none">
+                  <label className="block text-xs uppercase tracking-widest text-gs-text-muted mb-2 font-black">Category Type</label>
+                  <select value={newGroup.type} onChange={e => setNewGroup({...newGroup, type: e.target.value})} className="w-full bg-gs-bg border border-gs-border shadow-inner rounded-xl p-4 outline-none focus:border-gs-primary transition-all text-gs-text-main font-medium appearance-none">
                     <option value="Hackathon">Hackathon</option>
                     <option value="Technical">Technical</option>
                     <option value="Cultural">Cultural</option>
@@ -339,26 +363,29 @@ export default function BrowseGroups() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Privacy</label>
-                <select value={newGroup.privacy} onChange={e => setNewGroup({...newGroup, privacy: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white appearance-none">
-                  <option value="public">Public (Anyone can request)</option>
-                  <option value="private">Private (Invite only / Hidden)</option>
-                  <option value="password">Password Protected</option>
+                <label className="block text-xs uppercase tracking-widest text-gs-text-muted mb-2 font-black">Privacy Protocol</label>
+                <select value={newGroup.privacy} onChange={e => setNewGroup({...newGroup, privacy: e.target.value})} className="w-full bg-gs-bg border border-gs-border shadow-inner rounded-xl p-4 outline-none focus:border-gs-primary transition-all text-gs-text-main font-medium appearance-none">
+                  <option value="public">Public (Open Requests)</option>
+                  <option value="private">Private (Invite Only)</option>
+                  <option value="password">Password Encrypted</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Description</label>
-                <textarea required rows="3" value={newGroup.description} onChange={e => setNewGroup({...newGroup, description: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white resize-none" />
+                <label className="block text-xs uppercase tracking-widest text-gs-text-muted mb-2 font-black">Mission Description</label>
+                <textarea required rows="4" value={newGroup.description} onChange={e => setNewGroup({...newGroup, description: e.target.value})} className="w-full bg-gs-bg border border-gs-border shadow-inner rounded-xl p-4 outline-none focus:border-gs-primary focus:shadow-[0_0_15px_rgba(0,240,255,0.15)] transition-all text-gs-text-main font-medium resize-none leading-relaxed" />
+              </div>
+              <div className="bg-gs-bg/50 p-6 rounded-2xl border border-gs-border/50">
+                <div className="flex justify-between items-center mb-4">
+                   <label className="block text-xs uppercase tracking-widest text-gs-text-muted font-black">Max Unit Capacity</label>
+                   <span className="px-3 py-1 bg-gs-primary/20 text-gs-primary rounded-lg font-black">{newGroup.maxMembers}</span>
+                </div>
+                <input type="range" min="2" max="10" value={newGroup.maxMembers} onChange={e => setNewGroup({...newGroup, maxMembers: parseInt(e.target.value)})} className="w-full accent-gs-primary cursor-ew-resize" />
               </div>
               <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Max Members: {newGroup.maxMembers}</label>
-                <input type="range" min="2" max="10" value={newGroup.maxMembers} onChange={e => setNewGroup({...newGroup, maxMembers: parseInt(e.target.value)})} className="w-full accent-[#00f0ff]" />
-              </div>
-              <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2 font-medium">Skills Needed (Select up to 5)</label>
-                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar p-1">
+                <label className="block text-xs uppercase tracking-widest text-gs-text-muted mb-3 font-black">Required Skill Vectors (Max 5)</label>
+                <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto custom-scrollbar p-1">
                   {ONBOARDING_SKILLS.map(s => (
-                    <button type="button" key={s} onClick={() => toggleModalSkill(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${newGroup.skills.includes(s) ? "bg-[#00f0ff]/20 border-[#00f0ff] text-[#00f0ff] shadow-[0_0_10px_rgba(0,240,255,0.2)]" : "bg-white/5 border-white/10 text-[var(--color-gs-text-muted)] hover:border-white/30 hover:text-white"}`}>
+                    <button type="button" key={s} onClick={() => toggleModalSkill(s)} className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${newGroup.skills.includes(s) ? "bg-gs-primary/20 border-gs-primary text-gs-primary shadow-[0_0_15px_rgba(0,240,255,0.2)]" : "bg-gs-bg border-gs-border text-gs-text-muted hover:border-gs-border/80 hover:text-gs-text-main shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"}`}>
                       {s}
                     </button>
                   ))}
@@ -367,29 +394,26 @@ export default function BrowseGroups() {
 
               {/* Event Poster / Image Upload */}
               <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Event Poster / Banner <span className="text-xs opacity-60">(optional)</span></label>
+                <label className="block text-xs uppercase tracking-widest text-gs-text-muted mb-3 font-black">Visual Asset / Poster <span className="opacity-60 text-[10px]">(Optional)</span></label>
                 {posterPreview ? (
-                  <div className="relative rounded-xl overflow-hidden border border-[var(--color-gs-cyan)]/40 group">
-                    <img src={posterPreview} alt="Event poster preview" className="w-full h-40 object-cover" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="relative rounded-2xl overflow-hidden border border-gs-cyan/40 group shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                    <img src={posterPreview} alt="Event poster preview" className="w-full h-48 object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
                       <button
                         type="button"
                         onClick={removePoster}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-500/80 hover:bg-red-500 text-white text-sm font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(239,68,68,0.4)]"
                       >
-                        <Trash2 size={14} /> Remove
+                        <Trash2 size={16} /> Delete Asset
                       </button>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
-                      <p className="text-xs text-white/80 truncate">{posterFile?.name}</p>
                     </div>
                   </div>
                 ) : (
                   <label
-                    className={`flex flex-col items-center justify-center gap-3 w-full h-36 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
+                    className={`flex flex-col items-center justify-center gap-4 w-full h-40 rounded-2xl border-2 border-dashed cursor-pointer transition-all ${
                       isDragOver
-                        ? 'border-[#00f0ff] bg-[#00f0ff]/10 scale-[1.01]'
-                        : 'border-white/10 bg-white/5 hover:border-[#00f0ff]/50 hover:bg-[#00f0ff]/5'
+                        ? 'border-gs-primary bg-gs-primary/10 scale-[1.02]'
+                        : 'border-gs-border bg-gs-bg shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] hover:border-gs-primary/50 hover:bg-gs-primary/5'
                     }`}
                     onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                     onDragLeave={() => setIsDragOver(false)}
@@ -401,22 +425,22 @@ export default function BrowseGroups() {
                       className="hidden"
                       onChange={(e) => handlePosterSelect(e.target.files[0])}
                     />
-                    <div className={`p-3 rounded-full transition-colors ${ isDragOver ? 'bg-[#00f0ff]/20' : 'bg-white/5' }`}>
-                      <ImagePlus size={22} className={isDragOver ? 'text-[#00f0ff]' : 'text-white/50'} />
+                    <div className={`p-4 rounded-full transition-colors ${ isDragOver ? 'bg-gs-primary/20 shadow-[0_0_15px_rgba(0,240,255,0.2)]' : 'bg-gs-card border border-gs-border shadow-sm' }`}>
+                      <ImagePlus size={24} className={isDragOver ? 'text-gs-primary' : 'text-gs-text-muted'} />
                     </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-white/70">
-                        {isDragOver ? 'Drop it here!' : 'Click to upload or drag & drop'}
+                    <div className="text-center px-4">
+                      <p className="text-sm font-bold text-gs-text-main mb-1">
+                        {isDragOver ? 'Drop protocol asset here!' : 'Click to select or drag & drop'}
                       </p>
-                      <p className="text-xs text-white/40 mt-1">PNG, JPG, WEBP up to 5 MB</p>
+                      <p className="text-xs text-gs-text-muted font-medium">Supported formats: PNG, JPG, WEBP (Max 5MB)</p>
                     </div>
                   </label>
                 )}
               </div>
               
-              <div className="pt-4 relative z-10">
-                <button type="submit" className="w-full py-4 bg-gradient-to-r from-[#00f0ff] to-[#a855f7] text-white font-bold rounded-xl hover:opacity-90 btn-scale transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)]">
-                  Launch Group
+              <div className="pt-6 relative z-10">
+                <button type="submit" className="w-full py-4 bg-gradient-to-r from-gs-primary to-gs-secondary text-white font-black uppercase tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] flex justify-center items-center gap-2">
+                  <Sparkles size={20} /> Initialize Vanguard Protocol
                 </button>
               </div>
             </form>

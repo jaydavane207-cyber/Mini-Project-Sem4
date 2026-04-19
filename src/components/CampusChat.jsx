@@ -672,7 +672,7 @@ export default function CampusChat() {
     <div className="flex h-[85vh] glass-card rounded-3xl overflow-hidden animate-page-load">
 
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <div className="w-72 border-r border-white/5 flex flex-col bg-black/20 shrink-0 backdrop-blur-md">
+      <div className="w-72 border-r border-gs-border flex flex-col bg-gs-bg/20 shrink-0 backdrop-blur-md">
         <div className="p-4 border-b border-white/5 space-y-3">
           <h2 className="text-lg font-bold font-heading text-white">Messages</h2>
           <div className="relative">
@@ -747,9 +747,9 @@ export default function CampusChat() {
       </div>
 
       {/* ── Main Chat Area ───────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#050810]/50 relative backdrop-blur-md">
+      <div className="flex-1 flex flex-col min-w-0 bg-transparent relative backdrop-blur-md">
         {/* Header */}
-        <header className="h-16 border-b border-white/5 flex items-center justify-between px-5 shrink-0 bg-transparent">
+        <header className="h-16 border-b border-gs-border flex items-center justify-between px-5 shrink-0 bg-transparent">
           {activeChat === 'general' ? (
             <div className="flex items-center gap-3">
               <Hash size={20} className="text-[#00f0ff]" />
@@ -967,7 +967,7 @@ export default function CampusChat() {
       {/* ── Public Profile Modal Overlay ────────────────────────────────────── */}
       {isProfileModalOpen && profileViewUser && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gs-overlay backdrop-blur-sm p-4"
           onClick={() => setIsProfileModalOpen(false)}
         >
           <div
