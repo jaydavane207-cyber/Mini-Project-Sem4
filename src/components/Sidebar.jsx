@@ -74,19 +74,23 @@ export default function Sidebar() {
         </div>
 
         <div className="flex flex-col gap-2 pb-4">
-          {/* Theme Toggle */}
-          <div className="px-3 mb-2">
-            <button
-              onClick={toggleTheme}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative group w-full text-left overflow-hidden text-[var(--color-gs-text-muted)] hover:bg-white/5 hover:text-white"
-            >
-              <div className="relative z-10 opacity-70 group-hover:opacity-100 transition-opacity">
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-              </div>
-              <span className="font-medium text-sm relative z-10 w-full truncate">
-                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-              </span>
-            </button>
+          {/* Theme Toggle Wrapper */}
+          <div className="px-4 mb-4">
+            <div className="relative flex p-1 rounded-2xl bg-white/5 border border-[var(--color-gs-card-border)] cursor-pointer overflow-hidden shadow-inner" onClick={toggleTheme}>
+               <div
+                  className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] bg-gradient-to-r from-[#00f0ff] to-[#a855f7] rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(0,240,255,0.3)] ${
+                    theme === 'light' ? 'translate-x-full' : 'translate-x-0'
+                  }`}
+               />
+               <div className={`relative z-10 flex items-center justify-center gap-2 w-1/2 py-2.5 transition-colors duration-300 ${theme === 'dark' ? 'text-white drop-shadow-md' : 'text-[var(--color-gs-text-muted)]'}`}>
+                  <Moon size={15} />
+                  <span className="text-xs font-bold tracking-wide">Dark</span>
+               </div>
+               <div className={`relative z-10 flex items-center justify-center gap-2 w-1/2 py-2.5 transition-colors duration-300 ${theme === 'light' ? 'text-white drop-shadow-md' : 'text-[var(--color-gs-text-muted)]'}`}>
+                  <Sun size={15} />
+                  <span className="text-xs font-bold tracking-wide">Light</span>
+               </div>
+            </div>
           </div>
 
           {/* User Info Bottom */}

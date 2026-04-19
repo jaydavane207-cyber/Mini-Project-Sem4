@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, Users, Zap, Shield, Sparkles, Filter, Code } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
 
 export default function Home({ onNavigate }) {
+  const { theme } = useAppContext();
   const [particles, setParticles] = useState([]);
 
   useEffect(() => {
@@ -72,7 +74,7 @@ export default function Home({ onNavigate }) {
   ];
 
   return (
-    <div className="w-full flex justify-center pb-20 overflow-x-hidden bg-[radial-gradient(circle_at_center,#0d1528_0%,#050810_100%)] min-h-screen">
+    <div className={`w-full flex justify-center pb-20 overflow-x-hidden min-h-screen transition-all duration-300 ${theme === 'light' ? 'bg-[var(--color-gs-bg)]' : 'bg-[radial-gradient(circle_at_center,#0d1528_0%,#050810_100%)]'}`}>
       {/* Particles Overlay */}
       <div className="fixed inset-0 pointer-events-none z-0">
         {particles.map((p) => (

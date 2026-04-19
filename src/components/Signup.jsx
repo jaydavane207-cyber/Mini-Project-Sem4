@@ -811,7 +811,7 @@ export default function Signup({ onNavigate, initialStep = 1 }) {
     privacy: { publicProfile: true, showSkills: true, showEmail: false },
   });
 
-  const { checkAuth } = useAppContext();
+  const { checkAuth, theme } = useAppContext();
   const update = (key, value) => setFormData(prev => ({ ...prev, [key]: value }));
 
   const handleSubmit = async () => {
@@ -872,7 +872,7 @@ export default function Signup({ onNavigate, initialStep = 1 }) {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full bg-transparent p-4 relative overflow-hidden">
-      <div className="w-full max-w-lg backdrop-blur-xl bg-[#050810]/60 border border-white/5 rounded-3xl p-8 z-10 shadow-[0_0_40px_rgba(0,0,0,0.3)] animate-page-load">
+      <div className={`w-full max-w-lg backdrop-blur-xl rounded-3xl p-8 z-10 animate-page-load ${theme === 'light' ? 'bg-white/40 border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.08)]' : 'bg-[#050810]/60 border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.3)]'}`}>
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/20 shadow-[0_0_20px_rgba(0,240,255,0.2)] flex items-center justify-center text-[#00f0ff]">

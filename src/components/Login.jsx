@@ -6,7 +6,7 @@ import { useAppContext } from '../context/AppContext';
 
 export default function Login({ onNavigate, onLogin }) {
   const navigate = useNavigate();
-  const { checkAuth, showToast } = useAppContext();
+  const { checkAuth, showToast, theme } = useAppContext();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -120,7 +120,7 @@ export default function Login({ onNavigate, onLogin }) {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full bg-transparent p-4 relative overflow-hidden">
-      <div className="w-full max-w-md backdrop-blur-xl bg-[#050810]/60 border border-white/5 rounded-3xl p-8 z-10 shadow-[0_0_40px_rgba(0,0,0,0.3)] animate-page-load">
+      <div className={`w-full max-w-md backdrop-blur-xl rounded-3xl p-8 z-10 animate-page-load ${theme === 'light' ? 'bg-white/40 border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.08)]' : 'bg-[#050810]/60 border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.3)]'}`}>
         <div className="flex flex-col items-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/20 shadow-[0_0_20px_rgba(0,240,255,0.2)] flex items-center justify-center text-[#00f0ff] mb-6">
              <Zap size={28} />
