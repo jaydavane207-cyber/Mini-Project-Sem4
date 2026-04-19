@@ -181,19 +181,19 @@ export default function BrowseGroups() {
 
   return (
     <>
-      <div className="space-y-8 animate-[slideIn_0.3s_ease-out]">
+      <div className="space-y-8 animate-page-load">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-bold">Browse Groups</h1>
+          <h1 className="text-4xl font-bold font-heading text-white">Browse Groups</h1>
           <p className="text-[var(--color-gs-text-muted)] mt-2">Find your next team or start your own.</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="px-6 py-3 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-colors flex items-center gap-2">
+        <button onClick={() => setIsModalOpen(true)} className="px-6 py-3 bg-gradient-to-r from-[#00f0ff] to-[#a855f7] text-white font-bold rounded-xl hover:opacity-90 transition-all shadow-[0_0_20px_rgba(0,240,255,0.3)] btn-scale flex items-center gap-2">
           <Sparkles size={18} /> Create Group
         </button>
       </div>
 
       {/* Filters & Search */}
-      <div className="flex flex-col md:flex-row gap-4 items-center bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] p-2 rounded-2xl">
+      <div className="flex flex-col md:flex-row gap-4 items-center glass-card p-2 rounded-2xl">
         <div className="flex-1 w-full pl-4 pr-2 py-2 flex items-center gap-3">
           <Compass className="text-[var(--color-gs-text-muted)]" size={20} />
           <input 
@@ -209,7 +209,7 @@ export default function BrowseGroups() {
             <button 
               key={type} 
               onClick={() => setFilterType(type)}
-              className={"px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap " + (filterType === type ? 'bg-[var(--color-gs-bg)] text-[var(--color-gs-cyan)] border border-[var(--color-gs-cyan)]/50' : 'bg-transparent text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-text-main)] border border-transparent hover:border-gray-700')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${filterType === type ? 'bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/50 shadow-[0_0_10px_rgba(0,240,255,0.2)]' : 'bg-transparent text-[var(--color-gs-text-muted)] hover:text-white border border-transparent hover:border-white/10 hover:bg-white/5'}`}
             >
               {type}
             </button>
@@ -229,11 +229,11 @@ export default function BrowseGroups() {
           const isFull = group.members >= group.maxMembers;
 
           return (
-            <div key={group.id} className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-2xl overflow-hidden transition-all duration-300 hover:border-gray-500 hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col h-full">
+            <div key={group.id} className="glass-card rounded-2xl overflow-hidden transition-all duration-300 hover:translate-y-[-4px] hover:border-[#00f0ff]/30 hover:shadow-[0_10px_30px_rgba(0,240,255,0.1)] flex flex-col h-full group">
               <div className="p-6 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-xl font-bold">{group.name}</h3>
+                    <h3 className="text-xl font-bold font-heading text-white">{group.name}</h3>
                     <p className="text-sm text-[var(--color-gs-text-muted)]">{group.event}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
@@ -245,13 +245,13 @@ export default function BrowseGroups() {
                 </div>
 
                 {group.poster_url && (
-                  <div className="w-full h-56 shrink-0 mb-6 rounded-xl overflow-hidden border border-[var(--color-gs-border)] bg-[var(--color-gs-bg)] relative group">
+                  <div className="w-full h-56 shrink-0 mb-6 rounded-xl overflow-hidden border border-white/5 bg-black/40 relative group-hover:shadow-[0_0_20px_rgba(0,240,255,0.15)] transition-shadow">
                     <img 
                       src={group.poster_url} 
                       alt={`${group.name} poster`} 
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-gs-card)]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#050810]/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 )}
 
@@ -279,8 +279,8 @@ export default function BrowseGroups() {
                     ))}
                   </div>
                 </div>
-                <div className="w-full h-2 bg-[var(--color-gs-border)] rounded-full overflow-hidden mb-4">
-                  <div className="h-full bg-[var(--color-gs-cyan)] transition-all" style={{ width: ((group.members / group.maxMembers) * 100) + '%' }} />
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden mb-4">
+                  <div className="h-full bg-gradient-to-r from-[#00f0ff] to-[#a855f7] transition-all" style={{ width: ((group.members / group.maxMembers) * 100) + '%' }} />
                 </div>
                 
                 <button 
@@ -292,7 +292,7 @@ export default function BrowseGroups() {
                     setSelectedGroupId(group.id);
                     navigate(`/group/${group.id}`);
                   }}
-                  className={"w-full py-3 rounded-xl font-bold transition-all bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] hover:border-[var(--color-gs-cyan)] hover:text-[var(--color-gs-cyan)]"}
+                  className="w-full py-3 rounded-xl font-bold transition-all bg-white/5 border border-white/10 hover:border-[#00f0ff] hover:text-[#00f0ff] hover:bg-[#00f0ff]/5 btn-scale text-white"
                 >
                   {group.isFallback ? 'Sample Group' : 'View Group'}
                 </button>
@@ -307,28 +307,31 @@ export default function BrowseGroups() {
       {/* Create Group Modal via Portal - renders at document.body to escape layout containers */}
       {isModalOpen && ReactDOM.createPortal(
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-[slideInUp_0.2s_ease-out]"
           onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false); }}
         >
-          <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-3xl p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Create Group</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-text-main)]"><X size={24} /></button>
+          <div className="glass-card border border-white/10 rounded-3xl p-8 max-w-lg w-full shadow-[0_0_50px_rgba(0,0,0,0.8)] max-h-[90vh] overflow-y-auto custom-scrollbar relative">
+            <div className="absolute top-0 right-0 p-6 pointer-events-none">
+               <div className="w-32 h-32 bg-[#00f0ff]/10 rounded-full blur-3xl" />
+            </div>
+            <div className="flex justify-between items-center mb-6 relative z-10">
+              <h2 className="text-2xl font-bold font-heading text-white">Create Group</h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-[var(--color-gs-text-muted)] hover:text-white transition-colors pointer-events-auto"><X size={24} /></button>
             </div>
             
             <form onSubmit={handleCreateGroup} className="space-y-4">
               <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1">Group Name</label>
-                <input required type="text" value={newGroup.name} onChange={e => setNewGroup({...newGroup, name: e.target.value})} className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)]" />
+                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Group Name</label>
+                <input required type="text" value={newGroup.name} onChange={e => setNewGroup({...newGroup, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1">Event</label>
-                  <input required type="text" value={newGroup.event} onChange={e => setNewGroup({...newGroup, event: e.target.value})} className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)] placeholder-gray-500" placeholder="e.g. Hackathon" />
+                  <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Event</label>
+                  <input required type="text" value={newGroup.event} onChange={e => setNewGroup({...newGroup, event: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white placeholder-white/30" placeholder="e.g. Hackathon" />
                 </div>
                 <div>
-                  <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1">Type</label>
-                  <select value={newGroup.type} onChange={e => setNewGroup({...newGroup, type: e.target.value})} className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)] appearance-none">
+                  <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Type</label>
+                  <select value={newGroup.type} onChange={e => setNewGroup({...newGroup, type: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white appearance-none">
                     <option value="Hackathon">Hackathon</option>
                     <option value="Technical">Technical</option>
                     <option value="Cultural">Cultural</option>
@@ -336,26 +339,26 @@ export default function BrowseGroups() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1">Privacy</label>
-                <select value={newGroup.privacy} onChange={e => setNewGroup({...newGroup, privacy: e.target.value})} className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)] appearance-none">
+                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Privacy</label>
+                <select value={newGroup.privacy} onChange={e => setNewGroup({...newGroup, privacy: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white appearance-none">
                   <option value="public">Public (Anyone can request)</option>
                   <option value="private">Private (Invite only / Hidden)</option>
                   <option value="password">Password Protected</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1">Description</label>
-                <textarea required rows="3" value={newGroup.description} onChange={e => setNewGroup({...newGroup, description: e.target.value})} className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)] resize-none" />
+                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Description</label>
+                <textarea required rows="3" value={newGroup.description} onChange={e => setNewGroup({...newGroup, description: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white resize-none" />
               </div>
               <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1">Max Members: {newGroup.maxMembers}</label>
-                <input type="range" min="2" max="10" value={newGroup.maxMembers} onChange={e => setNewGroup({...newGroup, maxMembers: parseInt(e.target.value)})} className="w-full accent-[var(--color-gs-cyan)]" />
+                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Max Members: {newGroup.maxMembers}</label>
+                <input type="range" min="2" max="10" value={newGroup.maxMembers} onChange={e => setNewGroup({...newGroup, maxMembers: parseInt(e.target.value)})} className="w-full accent-[#00f0ff]" />
               </div>
               <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2">Skills Needed (Select up to 5)</label>
+                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2 font-medium">Skills Needed (Select up to 5)</label>
                 <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar p-1">
                   {ONBOARDING_SKILLS.map(s => (
-                    <button type="button" key={s} onClick={() => toggleModalSkill(s)} className={"px-3 py-1 rounded-md text-xs font-medium border transition-colors " + (newGroup.skills.includes(s) ? "bg-[var(--color-gs-cyan)]/20 border-[var(--color-gs-cyan)] text-[var(--color-gs-cyan)]" : "bg-[var(--color-gs-bg)] border-[var(--color-gs-border)] text-[var(--color-gs-text-muted)] hover:border-gray-500")}>
+                    <button type="button" key={s} onClick={() => toggleModalSkill(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${newGroup.skills.includes(s) ? "bg-[#00f0ff]/20 border-[#00f0ff] text-[#00f0ff] shadow-[0_0_10px_rgba(0,240,255,0.2)]" : "bg-white/5 border-white/10 text-[var(--color-gs-text-muted)] hover:border-white/30 hover:text-white"}`}>
                       {s}
                     </button>
                   ))}
@@ -385,8 +388,8 @@ export default function BrowseGroups() {
                   <label
                     className={`flex flex-col items-center justify-center gap-3 w-full h-36 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
                       isDragOver
-                        ? 'border-[var(--color-gs-cyan)] bg-[var(--color-gs-cyan)]/10 scale-[1.01]'
-                        : 'border-[var(--color-gs-border)] bg-[var(--color-gs-bg)] hover:border-[var(--color-gs-cyan)]/50 hover:bg-[var(--color-gs-cyan)]/5'
+                        ? 'border-[#00f0ff] bg-[#00f0ff]/10 scale-[1.01]'
+                        : 'border-white/10 bg-white/5 hover:border-[#00f0ff]/50 hover:bg-[#00f0ff]/5'
                     }`}
                     onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                     onDragLeave={() => setIsDragOver(false)}
@@ -398,21 +401,21 @@ export default function BrowseGroups() {
                       className="hidden"
                       onChange={(e) => handlePosterSelect(e.target.files[0])}
                     />
-                    <div className={`p-3 rounded-full transition-colors ${ isDragOver ? 'bg-[var(--color-gs-cyan)]/20' : 'bg-[var(--color-gs-border)]' }`}>
-                      <ImagePlus size={22} className={isDragOver ? 'text-[var(--color-gs-cyan)]' : 'text-[var(--color-gs-text-muted)]'} />
+                    <div className={`p-3 rounded-full transition-colors ${ isDragOver ? 'bg-[#00f0ff]/20' : 'bg-white/5' }`}>
+                      <ImagePlus size={22} className={isDragOver ? 'text-[#00f0ff]' : 'text-white/50'} />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-medium text-[var(--color-gs-text-muted)]">
+                      <p className="text-sm font-medium text-white/70">
                         {isDragOver ? 'Drop it here!' : 'Click to upload or drag & drop'}
                       </p>
-                      <p className="text-xs text-[var(--color-gs-text-muted)]/60 mt-1">PNG, JPG, WEBP up to 5 MB</p>
+                      <p className="text-xs text-white/40 mt-1">PNG, JPG, WEBP up to 5 MB</p>
                     </div>
                   </label>
                 )}
               </div>
               
-              <div className="pt-4">
-                <button type="submit" className="w-full py-4 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-colors shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:shadow-[0_0_25px_rgba(0,212,255,0.5)]">
+              <div className="pt-4 relative z-10">
+                <button type="submit" className="w-full py-4 bg-gradient-to-r from-[#00f0ff] to-[#a855f7] text-white font-bold rounded-xl hover:opacity-90 btn-scale transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)]">
                   Launch Group
                 </button>
               </div>

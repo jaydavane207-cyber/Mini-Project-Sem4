@@ -5,6 +5,55 @@ import {
   Award, Sparkles, Clock, FileText, Eye,
 } from 'lucide-react';
 
+const FloatingParticles = () => {
+  const [particles, setParticles] = useState([]);
+  
+  useEffect(() => {
+    setParticles(
+      Array.from({ length: 25 }).map((_, i) => ({
+        id: i,
+        size: Math.random() * 3 + 2,
+        top: Math.random() * 100,
+        left: Math.random() * 100,
+        color: Math.random() > 0.5 ? '#00f0ff' : '#a855f7',
+        opacity: Math.random() * 0.3 + 0.3,
+        duration: Math.random() * 4 + 4,
+        delay: Math.random() * -8,
+        ty: Math.random() * 20 + 20,
+      }))
+    );
+  }, []);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      <style>
+        {`
+          @keyframes float-particle {
+            from { transform: translateY(0); }
+            to { transform: translateY(var(--ty)); }
+          }
+        `}
+      </style>
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute rounded-full"
+          style={{
+            width: p.size,
+            height: p.size,
+            top: `${p.top}%`,
+            left: `${p.left}%`,
+            backgroundColor: p.color,
+            opacity: p.opacity,
+            '--ty': `-${p.ty}px`,
+            animation: `float-particle ${p.duration}s infinite alternate ease-in-out ${p.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const MOCK_USER_PROFILE = {
   name: 'Aarav Sharma',
@@ -284,52 +333,61 @@ export default function PublicProfileView({ userProfile = MOCK_USER_PROFILE }) {
   };
 
   return (
-    <>
+    <div className="relative min-h-screen w-full bg-[#050810] overflow-hidden text-white sm:py-10">
+      {/* Background Layers */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[rgba(168,85,247,0.15)] rounded-full blur-[120px] pointer-events-none -translate-y-1/4 translate-x-1/4" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[rgba(0,240,255,0.10)] rounded-full blur-[100px] pointer-events-none translate-y-1/4 -translate-x-1/4" />
+      
+      {/* Subtle grid pattern overlay */}
+      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(rgba(255,255,255,0.03) 0 1px, transparent 1px 40px), repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 40px)' }} />
+
+      {/* Floating Animated Particles */}
+      <FloatingParticles />
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="max-w-2xl mx-auto"
+        className="relative z-10 max-w-2xl mx-auto"
       >
-        <div className="relative bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-3xl overflow-hidden shadow-2xl shadow-black/30">
+        <div className="relative bg-[#050810]/70 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl shadow-black/80">
 
-          {/* ── Decorative header gradient ──────────────────────────── */}
-          <div className="relative h-36 overflow-hidden">
+          {/* ── Decorative header gradient (Hero Banner) ──────────────────────────── */}
+          <div className="relative h-40 overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(0,240,255,0.1))' }}>
             <div
-              className="absolute inset-0"
+              className="absolute inset-0 opacity-5"
               style={{
-                background: 'linear-gradient(135deg, #0a0e1a 0%, #1a1040 25%, #0d2847 50%, #0a1628 75%, #0a0e1a 100%)',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%23ffffff' stroke-width='1'/%3E%3C/svg%3E")`,
+                backgroundSize: '40px 40px',
               }}
             />
-            <div
-              className="absolute inset-0 opacity-20"
-              style={{
-                backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,212,255,0.3) 1px, transparent 0)',
-                backgroundSize: '24px 24px',
-              }}
-            />
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-[var(--color-gs-cyan)]/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-10 -left-10 w-36 h-36 bg-[var(--color-gs-violet)]/10 rounded-full blur-3xl" />
 
-            <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-[10px] font-bold text-[var(--color-gs-text-muted)] uppercase tracking-widest">
-              <Eye size={11} className="text-[var(--color-gs-green)]" />
+            <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white uppercase tracking-widest">
+              <Eye size={11} className="text-[#00f0ff]" />
               Public Profile
             </div>
           </div>
 
           {/* ── Avatar (overlapping header) ────────────────────────── */}
-          <div className="relative px-8 -mt-16 pb-0">
-            <div className="relative inline-block">
-              <div className="w-28 h-28 rounded-2xl overflow-hidden border-4 border-[var(--color-gs-card)] shadow-xl shadow-black/40 bg-[var(--color-gs-bg)]">
+          <div className="relative px-8 -mt-16 pb-0 flex items-center">
+            {/* Glowing orb behind avatar */}
+            <div className="absolute left-8 top-0 -mt-10 w-[200px] h-[200px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.3), transparent 70%)', filter: 'blur(40px)' }} />
+
+            <div className="relative inline-block z-10">
+              <style>{`.conic-border { animation: spin-conic 3s linear infinite; } @keyframes spin-conic { 100% { transform: rotate(360deg); } }`}</style>
+              
+              <div className="relative w-32 h-32 rounded-2xl p-[3px] overflow-hidden shadow-2xl shadow-[rgba(0,240,255,0.2)]">
+                <div className="absolute inset-[-50%] conic-border" style={{ background: 'conic-gradient(from 0deg, transparent 0%, #00f0ff 25%, #a855f7 50%, transparent 75%)' }} />
+                <div className="absolute inset-[3px] bg-[#050810] rounded-xl z-0" />
                 <img
                   src={userProfile.avatarUrl}
                   alt={`${userProfile.name}'s avatar`}
-                  className="w-full h-full object-cover"
+                  className="relative z-10 w-full h-full object-cover rounded-xl"
                   loading="lazy"
                 />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-[var(--color-gs-green)] border-[3px] border-[var(--color-gs-card)] flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.5)]">
-                <ShieldCheck size={13} className="text-white" />
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-[#10b981] border-[3px] border-[#050810] flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.5)] z-20">
+                <ShieldCheck size={14} className="text-[#050810]" />
               </div>
             </div>
           </div>
@@ -436,6 +494,6 @@ export default function PublicProfileView({ userProfile = MOCK_USER_PROFILE }) {
           />
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }

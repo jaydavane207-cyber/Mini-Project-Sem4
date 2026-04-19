@@ -1,8 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Zap, Menu, X } from 'lucide-react';
 
 export default function Navbar({ currentPage, onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const links = [
     { id: 'home', label: 'Home' },
@@ -16,17 +25,17 @@ export default function Navbar({ currentPage, onNavigate }) {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-gs-bg)]/80 backdrop-blur-xl border-b border-[var(--color-gs-border)]">
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-[#050810]/80 backdrop-blur-[20px] border-b border-white/8' : 'bg-transparent border-transparent'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           
           {/* Logo */}
           <button onClick={() => handleNav('home')} className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-gs-bg)] border border-[var(--color-gs-cyan)] shadow-[0_0_15px_rgba(0,212,255,0.4)] flex items-center justify-center text-[var(--color-gs-cyan)]">
+            <div className="w-10 h-10 rounded-xl bg-transparent border border-[var(--color-gs-primary)] shadow-[0_0_15px_rgba(0,240,255,0.4)] flex items-center justify-center text-[var(--color-gs-primary)]">
               <Zap size={20} />
             </div>
-            <h1 className="text-xl font-bold text-[var(--color-gs-text-main)]">
-              Group<span className="text-[var(--color-gs-cyan)]">Sync</span>
+            <h1 className="text-xl font-bold text-white text-glow-cyan font-heading">
+              Group<span className="text-[var(--color-gs-primary)]">Sync</span>
             </h1>
           </button>
 
@@ -37,8 +46,8 @@ export default function Navbar({ currentPage, onNavigate }) {
                 <button
                   key={link.id}
                   onClick={() => handleNav(link.id)}
-                  className={`text-sm font-medium transition-colors hover:text-[var(--color-gs-cyan)] ${
-                    currentPage === link.id ? 'text-[var(--color-gs-cyan)]' : 'text-[var(--color-gs-text-muted)]'
+                  className={`text-sm font-medium transition-colors nav-link-underline hover:text-[var(--color-gs-primary)] ${
+                    currentPage === link.id ? 'text-[var(--color-gs-primary)]' : 'text-[var(--color-gs-text-muted)]'
                   }`}
                 >
                   {link.label}
@@ -46,16 +55,16 @@ export default function Navbar({ currentPage, onNavigate }) {
               ))}
             </div>
             
-            <div className="flex items-center space-x-4 pl-6 border-l border-[var(--color-gs-border)]">
+            <div className="flex items-center space-x-4 pl-6 border-l border-white/8">
               <button 
                 onClick={() => handleNav('login')}
-                className="text-sm font-bold text-[var(--color-gs-text-main)] hover:text-[var(--color-gs-cyan)] transition-colors"
+                className="text-sm font-bold text-white hover:text-[var(--color-gs-primary)] transition-colors"
               >
                 Log In
               </button>
               <button 
                 onClick={() => handleNav('signup')}
-                className="px-5 py-2.5 bg-[var(--color-gs-cyan)] text-[#0f172a] text-sm font-bold rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:shadow-[0_0_25px_rgba(0,212,255,0.5)]"
+                className="px-6 py-2.5 bg-gradient-to-br from-[#00f0ff] to-[#a855f7] text-[#050810] text-sm font-bold rounded-full btn-scale"
               >
                 Get Started
               </button>
@@ -66,7 +75,7 @@ export default function Navbar({ currentPage, onNavigate }) {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-text-main)] transition-colors p-2"
+              className="text-[var(--color-gs-text-muted)] hover:text-white transition-colors p-2"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -77,31 +86,31 @@ export default function Navbar({ currentPage, onNavigate }) {
 
       {/* Mobile Menu Dropdown */}
       {isOpen && (
-        <div className="md:hidden bg-[var(--color-gs-card)] border-b border-[var(--color-gs-border)] shadow-2xl absolute top-20 left-0 right-0 animate-[slideIn_0.2s_ease-out]">
+        <div className="md:hidden glass-card absolute top-20 left-4 right-4 animate-[slideInUp_0.2s_ease-out]">
           <div className="px-4 py-6 flex flex-col space-y-4">
             {links.map((link) => (
               <button
                 key={link.id}
                 onClick={() => handleNav(link.id)}
                 className={`text-left text-lg font-medium px-4 py-3 rounded-xl transition-colors ${
-                  currentPage === link.id ? 'bg-[var(--color-gs-cyan)]/10 text-[var(--color-gs-cyan)]' : 'text-[var(--color-gs-text-main)] hover:bg-[var(--color-gs-bg)]'
+                  currentPage === link.id ? 'bg-[var(--color-gs-primary)]/10 text-[var(--color-gs-primary)]' : 'text-white hover:bg-white/4'
                 }`}
               >
                 {link.label}
               </button>
             ))}
             
-            <div className="h-px bg-[var(--color-gs-border)] my-2" />
+            <div className="h-px bg-white/8 my-2" />
             
             <button 
               onClick={() => handleNav('login')}
-              className="w-full text-left text-lg font-bold px-4 py-3 text-[var(--color-gs-text-main)] hover:text-[var(--color-gs-cyan)] transition-colors"
+              className="w-full text-left text-lg font-bold px-4 py-3 text-white hover:text-[var(--color-gs-primary)] transition-colors"
             >
               Log In
             </button>
             <button 
               onClick={() => handleNav('signup')}
-              className="w-full px-4 py-3 mt-2 bg-[var(--color-gs-cyan)] text-[#0f172a] text-lg font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(0,212,255,0.3)]"
+              className="w-full px-4 py-3 mt-2 bg-gradient-to-br from-[#00f0ff] to-[#a855f7] text-[#050810] text-lg font-bold rounded-full btn-scale"
             >
               Get Started
             </button>

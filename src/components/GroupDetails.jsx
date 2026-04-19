@@ -189,9 +189,9 @@ export default function GroupDetails() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center p-8">
         <span className="text-6xl">🔍</span>
-        <h2 className="text-2xl font-bold text-[var(--color-gs-text-main)]">Group Not Found</h2>
+        <h2 className="text-2xl font-bold font-heading text-white">Group Not Found</h2>
         <p className="text-[var(--color-gs-text-muted)]">This group may have been deleted or you followed an invalid link.</p>
-        <button onClick={() => navigate('/browse')} className="px-6 py-3 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-colors">Browse Groups</button>
+        <button onClick={() => navigate('/browse')} className="px-6 py-3 bg-gradient-to-r from-[#00f0ff] to-[#a855f7] text-white font-bold rounded-xl hover:opacity-90 btn-scale shadow-[0_0_15px_rgba(0,240,255,0.3)]">Browse Groups</button>
       </div>
     );
   }
@@ -380,24 +380,24 @@ export default function GroupDetails() {
   };
 
   return (
-    <div className="space-y-8 animate-[slideIn_0.3s_ease-out]">
+    <div className="space-y-8 animate-page-load">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-bold flex items-center gap-3">
+          <h1 className="text-4xl font-bold font-heading text-white flex items-center gap-3">
             {group.name} 
             {group.privacy === 'private' && <Lock className="text-gray-400" size={24}/>}
-            {group.privacy === 'public' && <Unlock className="text-[var(--color-gs-cyan)]" size={24}/>}
+            {group.privacy === 'public' && <Unlock className="text-[#00f0ff]" size={24}/>}
           </h1>
           <p className="text-[var(--color-gs-text-muted)] mt-2">{group.event} • {group.type}</p>
         </div>
         <div className="flex gap-2">
           {isAdmin && (
-            <button onClick={() => setShowSettings(!showSettings)} className="px-4 py-2 bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-xl hover:border-[var(--color-gs-cyan)] transition-colors flex items-center gap-2">
-              <Settings size={18} /> Settings
+            <button onClick={() => setShowSettings(!showSettings)} className="px-4 py-2 glass-card hover:border-[#00f0ff]/50 rounded-xl transition-colors flex items-center gap-2 btn-scale">
+              <Settings size={18} className="text-[#00f0ff]" /> Settings
             </button>
           )}
           {isMember && (
-            <button onClick={() => setShowLeaveConfirm(true)} className="px-4 py-2 bg-[var(--color-gs-card)] border border-red-500/50 text-red-400 rounded-xl hover:bg-red-500/10 transition-colors flex items-center gap-2">
+            <button onClick={() => setShowLeaveConfirm(true)} className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-2 btn-scale">
               <LogOut size={18} /> Leave Group
             </button>
           )}
@@ -421,12 +421,12 @@ export default function GroupDetails() {
       )}
 
       {showSettings && isAdmin && (
-        <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] p-6 rounded-2xl">
-          <h2 className="text-2xl font-bold mb-4">Admin Settings</h2>
+        <div className="glass-card p-6 rounded-2xl animate-[slideInUp_0.2s_ease-out]">
+          <h2 className="text-2xl font-bold font-heading text-white mb-4">Admin Settings</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1">Group Privacy</label>
-              <select value={group.privacy} onChange={handleChangePrivacy} className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)] appearance-none max-w-md">
+              <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Group Privacy</label>
+              <select value={group.privacy} onChange={handleChangePrivacy} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 text-white appearance-none max-w-md transition-colors">
                 <option value="public">Public (Anyone can see and request)</option>
                 <option value="private">Private (Hidden from browse, invite only)</option>
                 <option value="password">Password Protected (Visible, requires password)</option>
@@ -446,26 +446,30 @@ export default function GroupDetails() {
         <div className="lg:col-span-2 space-y-6">
           {/* Navigation Tabs */}
           {isMember && (
-            <div className="flex gap-4 border-b border-[var(--color-gs-border)] pb-4">
-              <button onClick={() => setActiveTab('chat')} className={"flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-colors " + (activeTab === 'chat' ? "bg-[var(--color-gs-bg)] text-[var(--color-gs-cyan)] border border-[var(--color-gs-border)]" : "text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-text-main)]")}>
+            <div className="flex gap-4 border-b border-white/10 pb-4">
+              <button onClick={() => setActiveTab('chat')} className={`flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-all ${activeTab === 'chat' ? "bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/30 shadow-[0_0_10px_rgba(0,240,255,0.1)]" : "text-[var(--color-gs-text-muted)] hover:text-white"}`}>
                  <MessageSquare size={18} /> Chat
               </button>
-              <button onClick={() => setActiveTab('tasks')} className={"flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-colors " + (activeTab === 'tasks' ? "bg-[var(--color-gs-bg)] text-[var(--color-gs-cyan)] border border-[var(--color-gs-border)]" : "text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-text-main)]")}>
+              <button onClick={() => setActiveTab('tasks')} className={`flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-all ${activeTab === 'tasks' ? "bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/30 shadow-[0_0_10px_rgba(0,240,255,0.1)]" : "text-[var(--color-gs-text-muted)] hover:text-white"}`}>
                  <Layout size={18} /> Tasks
               </button>
             </div>
           )}
 
           {isMember ? (
-            <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] p-6 rounded-2xl min-h-[500px] flex flex-col">
+            <div className="glass-card p-6 rounded-2xl min-h-[500px] flex flex-col relative overflow-hidden">
+               {/* Ambient Glow */}
+               <div className="absolute top-0 right-0 w-64 h-64 bg-[#a855f7]/5 blur-3xl pointer-events-none" />
+               <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#00f0ff]/5 blur-3xl pointer-events-none" />
+               
                {activeTab === 'chat' && (
-                 <div className="flex flex-col flex-1">
-                   <h3 className="text-xl font-bold mb-4 flex justify-between items-center">
-                     <div className="flex items-center gap-2"><MessageSquare className="text-[var(--color-gs-cyan)]" /> Group Communication</div>
+                 <div className="flex flex-col flex-1 relative z-10">
+                   <h3 className="text-xl font-bold font-heading text-white mb-4 flex justify-between items-center">
+                     <div className="flex items-center gap-2"><MessageSquare className="text-[#00f0ff]" /> Group Communication</div>
                    </h3>
 
                    {/* Chat Messages Area */}
-                   <div className="flex-1 bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl p-4 space-y-4 overflow-y-auto max-h-[350px] mb-4">
+                   <div className="flex-1 bg-black/20 border border-white/5 rounded-xl p-4 space-y-4 overflow-y-auto max-h-[350px] mb-4 custom-scrollbar">
                       {messagesLoading ? (
                         <div className="flex flex-col items-center justify-center p-20 text-[var(--color-gs-text-muted)] gap-2">
                           <Loader2 className="animate-spin text-[var(--color-gs-cyan)]" size={24} />
@@ -600,25 +604,25 @@ export default function GroupDetails() {
                    )}
 
                    {/* Chat Input */}
-                   <div className="relative">
+                   <div className="relative z-10">
                      {showEmoji && <GroupEmojiPicker onSelect={e => setChatInput(prev => prev + e)} onClose={() => setShowEmoji(false)} />}
-                     <form onSubmit={handleSendGroupMessage} className="flex gap-2 items-center bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-2xl p-2 focus-within:border-[var(--color-gs-cyan)] transition-colors">
+                     <form onSubmit={handleSendGroupMessage} className="flex gap-2 items-center glass-card rounded-2xl p-2 focus-within:border-[#00f0ff] focus-within:shadow-[0_0_15px_rgba(0,240,255,0.1)] transition-all bg-white/5">
                        {/* File upload */}
                        <input ref={fileInputRef} type="file" accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx" className="hidden" onChange={handleFileSelect} />
                        <button type="button" onClick={() => fileInputRef.current?.click()}
-                         className="p-2 text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-cyan)] transition-colors rounded-xl hover:bg-[var(--color-gs-card)]">
+                         className="p-2 text-[var(--color-gs-text-muted)] hover:text-[#00f0ff] transition-colors rounded-xl hover:bg-white/5">
                          <Paperclip size={18} />
                        </button>
 
                        {/* Emoji */}
                        <button type="button" onClick={() => setShowEmoji(prev => !prev)}
-                         className={"p-2 transition-colors rounded-xl hover:bg-[var(--color-gs-card)] " + (showEmoji ? 'text-[var(--color-gs-amber)]' : 'text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-amber)]')}>
+                         className={`p-2 transition-colors rounded-xl hover:bg-white/5 ${showEmoji ? 'text-[#a855f7]' : 'text-[var(--color-gs-text-muted)] hover:text-[#a855f7]'}`}>
                          <Smile size={18} />
                        </button>
 
                        {/* Poll */}
                        <button type="button" onClick={() => setShowPollCreator(prev => !prev)}
-                         className={"p-2 transition-colors rounded-xl hover:bg-[var(--color-gs-card)] " + (showPollCreator ? 'text-[var(--color-gs-cyan)]' : 'text-[var(--color-gs-text-muted)] hover:text-[var(--color-gs-cyan)]')}>
+                         className={`p-2 transition-colors rounded-xl hover:bg-white/5 ${showPollCreator ? 'text-[#00f0ff]' : 'text-[var(--color-gs-text-muted)] hover:text-[#00f0ff]'}`}>
                          <BarChart3 size={18} />
                        </button>
 
@@ -628,12 +632,12 @@ export default function GroupDetails() {
                          onChange={(e) => setChatInput(e.target.value)}
                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendGroupMessage(); } }}
                          placeholder="Type a message..."
-                         className="flex-1 bg-transparent border-none px-2 py-2 outline-none text-[var(--color-gs-text-main)] placeholder-[var(--color-gs-text-muted)] text-sm"
+                         className="flex-1 bg-transparent border-none px-2 py-2 outline-none text-white placeholder-white/30 text-sm"
                        />
                        <button
                          type="submit"
                          disabled={!chatInput.trim() && !mediaPreview}
-                         className="p-2.5 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-colors flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_10px_rgba(0,212,255,0.3)]"
+                         className="p-2.5 bg-gradient-to-br from-[#00f0ff] to-[#a855f7] text-white rounded-xl hover:opacity-90 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_10px_rgba(0,240,255,0.3)] btn-scale"
                        >
                          <Send size={18} />
                        </button>
@@ -649,12 +653,13 @@ export default function GroupDetails() {
                )}
             </div>
           ) : (
-            <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] p-8 rounded-2xl flex flex-col items-center justify-center text-center space-y-6">
-              <div className="w-20 h-20 rounded-full bg-[var(--color-gs-bg)] border-2 border-[var(--color-gs-border)] flex items-center justify-center">
-                {group.privacy === 'password' ? <Lock size={32} className="text-gray-400" /> : <Users size={32} className="text-[var(--color-gs-cyan)]" />}
+            <div className="glass-card p-8 rounded-2xl flex flex-col items-center justify-center text-center space-y-6 relative overflow-hidden">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#00f0ff]/10 blur-3xl rounded-full" />
+              <div className="w-20 h-20 rounded-full bg-white/5 border-border-white/10 flex items-center justify-center relative z-10 glass-card shadow-[0_0_20px_rgba(0,240,255,0.2)]">
+                {group.privacy === 'password' ? <Lock size={32} className="text-[#ec4899]" /> : <Users size={32} className="text-[#00f0ff]" />}
               </div>
-              <div>
-                <h3 className="text-2xl font-bold mb-2">Join to View Chat & Details</h3>
+              <div className="relative z-10">
+                <h3 className="text-2xl font-bold font-heading text-white mb-2">Join to View Chat & Details</h3>
                 <p className="text-[var(--color-gs-text-muted)] max-w-sm mx-auto">
                   {group.privacy === 'public' && 'This group is public. Join now to start collaborating!'}
                   {group.privacy === 'password' && 'This group requires a password to join.'}
@@ -662,14 +667,14 @@ export default function GroupDetails() {
                 </p>
               </div>
               
-              <div className="w-full max-w-sm mx-auto flex flex-col gap-3">
+              <div className="w-full max-w-sm mx-auto flex flex-col gap-3 relative z-10">
                 {group.privacy === 'password' && (
-                  <input type="password" placeholder="Enter Group Password" className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)] text-center" />
+                  <input type="password" placeholder="Enter Group Password" className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] text-white text-center transition-colors" />
                 )}
                 <button 
                   disabled={group.members >= group.maxMembers}
                   onClick={handleJoinGroup}
-                  className="w-full py-3 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-xl hover:bg-cyan-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-4 bg-gradient-to-r from-[#00f0ff] to-[#a855f7] text-white font-bold rounded-xl hover:opacity-90 btn-scale transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(0,240,255,0.3)]"
                 >
                   {group.members >= group.maxMembers ? 'Group Full' : group.privacy === 'private' ? 'Request to Join' : group.privacy === 'password' ? 'Unlock & Join' : 'Join Group'}
                 </button>
@@ -680,14 +685,17 @@ export default function GroupDetails() {
         
         <div className="space-y-4">
           {/* Event Details Bar */}
-          <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-2xl overflow-hidden">
+          <div className="glass-card rounded-2xl overflow-hidden relative group">
             {group.poster_url && (
-              <img src={group.poster_url} alt={`${group.name} Event Banner`} className="w-full h-40 object-cover border-b border-[var(--color-gs-border)]" />
+              <div className="overflow-hidden h-40">
+                <img src={group.poster_url} alt={`${group.name} Event Banner`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-transparent to-[#050810]" />
+              </div>
             )}
-            <div className="p-6">
-              <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><CalendarIcon className="text-[var(--color-gs-amber)]" /> Event Details</h3>
+            <div className="p-6 relative z-10">
+              <h3 className="text-xl font-bold font-heading text-white mb-4 flex items-center gap-2"><CalendarIcon className="text-[#a855f7]" /> Event Details</h3>
               <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 bg-[var(--color-gs-bg)] rounded-xl border border-[var(--color-gs-border)]">
+              <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10 hover:border-[#00f0ff]/50 transition-colors">
                 <div className="p-2 rounded-lg bg-[var(--color-gs-cyan)]/10">
                   <CalendarIcon size={16} className="text-[var(--color-gs-cyan)]" />
                 </div>
@@ -726,8 +734,8 @@ export default function GroupDetails() {
             </div>
             </div>
           </div>
-          <div className="bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] p-6 rounded-2xl">
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Users className="text-[var(--color-gs-violet)]" /> {`Members (${realMembers.length || group.members}${group.maxMembers ? '/' + group.maxMembers : ''})`}</h3>
+          <div className="glass-card p-6 rounded-2xl">
+            <h3 className="text-xl font-bold font-heading text-white mb-4 flex items-center gap-2"><Users className="text-[#ec4899]" /> {`Members (${realMembers.length || group.members}${group.maxMembers ? '/' + group.maxMembers : ''})`}</h3>
             
             <div className="space-y-4">
                {realMembers.length === 0 ? (
@@ -741,10 +749,10 @@ export default function GroupDetails() {
                   const FactionBorder = factions[member.faction]?.border || 'border-gray-500';
                   const FactionName = factions[member.faction]?.name || 'Member';
                   return (
-                   <div key={member.id} className="flex items-center gap-3 group cursor-pointer p-2 hover:bg-[var(--color-gs-bg)] rounded-xl transition-colors">
+                   <div key={member.id} className="flex items-center gap-3 group cursor-pointer p-2 hover:bg-white/5 rounded-xl transition-all">
                      <div className="relative shrink-0">
-                       <div className={"w-10 h-10 rounded-full border bg-[var(--color-gs-bg)] flex items-center justify-center text-lg " + FactionBorder}>{member.avatar || '👤'}</div>
-                       {member.online && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[var(--color-gs-green)] rounded-full border-2 border-[var(--color-gs-card)]" />}
+                       <div className="w-10 h-10 rounded-full border border-white/10 bg-black/40 flex items-center justify-center text-lg">{member.avatar || '👤'}</div>
+                       {member.online && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#10b981] rounded-full border border-[#050810]" />}
                      </div>
                      <div className="flex-1">
                        <p className="font-bold text-sm">

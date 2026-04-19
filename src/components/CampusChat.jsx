@@ -669,12 +669,12 @@ export default function CampusChat() {
     : null;
 
   return (
-    <div className="flex h-[85vh] bg-[var(--color-gs-card)] border border-[var(--color-gs-border)] rounded-3xl overflow-hidden animate-[slideIn_0.3s_ease-out]">
+    <div className="flex h-[85vh] glass-card rounded-3xl overflow-hidden animate-page-load">
 
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <div className="w-72 border-r border-[var(--color-gs-border)] flex flex-col bg-[var(--color-gs-bg)]/50 shrink-0">
-        <div className="p-4 border-b border-[var(--color-gs-border)] space-y-3">
-          <h2 className="text-lg font-bold">Messages</h2>
+      <div className="w-72 border-r border-white/5 flex flex-col bg-black/20 shrink-0 backdrop-blur-md">
+        <div className="p-4 border-b border-white/5 space-y-3">
+          <h2 className="text-lg font-bold font-heading text-white">Messages</h2>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-gs-text-muted)]" />
             <input
@@ -682,7 +682,7 @@ export default function CampusChat() {
               value={userSearch}
               onChange={e => setUserSearch(e.target.value)}
               placeholder="Search users..."
-              className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-xl pl-9 pr-3 py-2 text-sm outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)] placeholder-[var(--color-gs-text-muted)]"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-sm outline-none focus:border-[#00f0ff] focus:bg-white/10 text-white placeholder-white/40 transition-colors"
             />
           </div>
         </div>
@@ -691,9 +691,9 @@ export default function CampusChat() {
           {/* General Channel */}
           <button
             onClick={() => handleSelectChat('general')}
-            className={"w-full flex items-center gap-3 p-4 border-b border-[var(--color-gs-border)] transition-colors text-left border-l-4 " + (activeChat === 'general' ? 'bg-[var(--color-gs-cyan)]/10 border-l-[var(--color-gs-cyan)]' : 'border-l-transparent hover:bg-[var(--color-gs-bg)]')}
+            className={`w-full flex items-center gap-3 p-4 border-b border-white/5 transition-colors text-left border-l-4 ${activeChat === 'general' ? 'bg-[#00f0ff]/10 border-l-[#00f0ff]' : 'border-l-transparent hover:bg-white/5'}`}
           >
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--color-gs-cyan)] to-[var(--color-gs-violet)] flex items-center justify-center text-white shadow-lg shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#00f0ff] to-[#a855f7] flex items-center justify-center text-white shadow-[0_0_15px_rgba(0,240,255,0.3)] shrink-0">
               <Hash size={22} />
             </div>
             <div className="flex-1 min-w-0">
@@ -713,7 +713,7 @@ export default function CampusChat() {
             <button
               key={student.id}
               onClick={() => handleSelectChat(student.id)}
-              className={"w-full flex items-center gap-3 p-4 border-b border-[var(--color-gs-border)] transition-colors text-left group border-l-4 " + (activeChat === student.id ? 'bg-[var(--color-gs-cyan)]/5 border-l-[var(--color-gs-cyan)]' : 'border-l-transparent hover:bg-[var(--color-gs-bg)]')}
+              className={`w-full flex items-center gap-3 p-4 border-b border-white/5 transition-colors text-left group border-l-4 ${activeChat === student.id ? 'bg-[#00f0ff]/10 border-l-[#00f0ff]' : 'border-l-transparent hover:bg-white/5'}`}
             >
               {/* Clickable avatar+name area — opens Public Profile (stopPropagation keeps chat selection intact) */}
               <div
@@ -747,14 +747,14 @@ export default function CampusChat() {
       </div>
 
       {/* ── Main Chat Area ───────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#050810]/50 relative backdrop-blur-md">
         {/* Header */}
-        <header className="h-16 border-b border-[var(--color-gs-border)] bg-[var(--color-gs-card)] flex items-center justify-between px-5 shrink-0">
+        <header className="h-16 border-b border-white/5 flex items-center justify-between px-5 shrink-0 bg-transparent">
           {activeChat === 'general' ? (
             <div className="flex items-center gap-3">
-              <Hash size={20} className="text-[var(--color-gs-cyan)]" />
+              <Hash size={20} className="text-[#00f0ff]" />
               <div>
-                <h1 className="font-bold">Campus General</h1>
+                <h1 className="font-bold font-heading text-white">Campus General</h1>
                 <p className="text-xs text-[var(--color-gs-text-muted)]">{onlineStudents.length + 1} students online</p>
               </div>
             </div>

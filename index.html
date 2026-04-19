@@ -12,5 +12,170 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <script>
+      (function () {
+        /* ── Canvas setup ── */
+        const canvas = document.createElement('canvas');
+        Object.assign(canvas.style, {
+          position: 'fixed',
+          top: '0',
+          left: '0',
+          width: '100%',
+          height: '100%',
+          zIndex: '0',
+          pointerEvents: 'none',
+        });
+        document.body.appendChild(canvas);
+
+        /* Ensure the React root and every direct body child sit above the canvas */
+        document.querySelectorAll('body > *:not(canvas)').forEach(el => {
+          if (getComputedStyle(el).position === 'static') {
+            el.style.position = 'relative';
+          }
+          if (!el.style.zIndex) el.style.zIndex = '1';
+        });
+
+        const ctx = canvas.getContext('2d');
+
+        /* ── Color scheme detection ── */
+        const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+        let isDark = darkMQ.matches;
+
+        function getColors() {
+          return isDark
+            ? { dot: 'rgba(255, 255, 255, 0.6)', line: 'rgba(100, 220, 255, 0.25)', highlight: 'rgba(100, 220, 255, 0.6)' }
+            : { dot: 'rgba(30, 30, 80, 0.4)',    line: 'rgba(80, 80, 200, 0.15)', highlight: 'rgba(80, 80, 200, 0.4)'  };
+        }
+
+        darkMQ.addEventListener('change', e => { isDark = e.matches; });
+
+        /* ── Resize ── */
+        let W, H;
+        function resize() {
+          W = canvas.width  = window.innerWidth;
+          H = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        /* ── Mouse Interactivity ── */
+        let mouse = { x: null, y: null, radius: 180 };
+        window.addEventListener('mousemove', (e) => {
+          mouse.x = e.x;
+          mouse.y = e.y;
+        });
+        window.addEventListener('mouseout', () => {
+          mouse.x = null;
+          mouse.y = null;
+        });
+
+        /* ── Particles ── */
+        const COUNT = Math.min(120, Math.floor((window.innerWidth * window.innerHeight) / 10000)); // Dynamic count based on screen size
+        const MAX_DIST = 150;
+        const particles = [];
+
+        function rand(min, max) { return Math.random() * (max - min) + min; }
+
+        for (let i = 0; i < COUNT; i++) {
+          particles.push({
+            x:  rand(0, window.innerWidth),
+            y:  rand(0, window.innerHeight),
+            vx: rand(-0.7, 0.7), // Increased speed
+            vy: rand(-0.7, 0.7), // Increased speed
+            r:  rand(1.5, 3.5),  // Made particles slightly larger
+          });
+        }
+
+        /* ── Animation loop ── */
+        function draw() {
+          ctx.clearRect(0, 0, W, H);
+          const colors = getColors();
+
+          /* Move & wrap */
+          for (const p of particles) {
+            p.x += p.vx;
+            p.y += p.vy;
+
+            // Bounce off edges instead of wrapping to make it feel more dynamic
+            if (p.x < 0 || p.x > W) p.vx *= -1;
+            if (p.y < 0 || p.y > H) p.vy *= -1;
+
+            // Optional wrap instead:
+            // if (p.x < -10)  p.x = W + 10;
+            // if (p.x > W + 10)  p.x = -10;
+            // if (p.y < -10)  p.y = H + 10;
+            // if (p.y > H + 10)  p.y = -10;
+          }
+
+          /* Mouse interactions & lines */
+          ctx.lineWidth = 1;
+          
+          for (let i = 0; i < COUNT; i++) {
+            // Check distance to mouse
+            if (mouse.x != null && mouse.y != null) {
+              const dxMouse = particles[i].x - mouse.x;
+              const dyMouse = particles[i].y - mouse.y;
+              const distMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
+              
+              if (distMouse < mouse.radius) {
+                // Interactive hover effect: push particles slightly or draw highlighted lines
+                const alphaMouse = (1 - distMouse / mouse.radius);
+                ctx.strokeStyle = colors.highlight;
+                ctx.globalAlpha = alphaMouse * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(mouse.x, mouse.y);
+                ctx.stroke();
+
+                // Gentle magnetic push effect away from cursor center if too close
+                if (distMouse < mouse.radius / 2) {
+                   particles[i].x -= dxMouse * 0.01;
+                   particles[i].y -= dyMouse * 0.01;
+                }
+              }
+            }
+
+            // Lines between close particles
+            ctx.strokeStyle = colors.line;
+            for (let j = i + 1; j < COUNT; j++) {
+              const dx = particles[i].x - particles[j].x;
+              const dy = particles[i].y - particles[j].y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < MAX_DIST) {
+                const alpha = (1 - dist / MAX_DIST);
+                ctx.globalAlpha = alpha * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.stroke();
+              }
+            }
+          }
+
+          /* Dots */
+          ctx.globalAlpha = 1;
+          for (const p of particles) {
+            ctx.fillStyle = colors.dot;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add a subtle glow for larger particles
+            if (p.r > 2.5) {
+              ctx.shadowColor = colors.dot;
+              ctx.shadowBlur = 8;
+            } else {
+              ctx.shadowBlur = 0;
+            }
+          }
+          ctx.shadowBlur = 0; // reset shadow for next frame
+
+          requestAnimationFrame(draw);
+        }
+
+        draw();
+      })();
+    </script>
   </body>
 </html>

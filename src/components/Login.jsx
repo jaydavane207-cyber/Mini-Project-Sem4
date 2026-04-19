@@ -119,18 +119,18 @@ export default function Login({ onNavigate, onLogin }) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-gs-bg p-4 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[#050810] p-4 relative overflow-hidden">
       {/* Background decorative elements */}
-      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-gs-cyan/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-gs-violet/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-[#00f0ff]/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-[#a855f7]/10 rounded-full blur-[120px] pointer-events-none" />
       
-      <div className="w-full max-w-md bg-gs-card/80 backdrop-blur-xl border border-gs-border rounded-3xl p-8 z-10 shadow-2xl animate-[slideIn_0.3s_ease-out]">
+      <div className="w-full max-w-md glass-card border border-white/10 rounded-3xl p-8 z-10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-page-load">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gs-bg border border-gs-cyan shadow-[0_0_15px_rgba(0,212,255,0.4)] flex items-center justify-center text-gs-cyan mb-4">
-             <Zap size={24} />
+          <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/20 shadow-[0_0_20px_rgba(0,240,255,0.2)] flex items-center justify-center text-[#00f0ff] mb-6">
+             <Zap size={28} />
           </div>
-          <h2 className="text-3xl font-bold text-gs-text-main text-center">Welcome Back</h2>
-          <p className="text-gs-text-muted mt-2 text-center">Sign in to continue to GroupSync.</p>
+          <h2 className="text-3xl font-bold font-heading text-white text-center">Welcome Back</h2>
+          <p className="text-[var(--color-gs-text-muted)] mt-2 text-center">Sign in to continue to GroupSync.</p>
         </div>
 
         {error && (
@@ -141,10 +141,10 @@ export default function Login({ onNavigate, onLogin }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-gs-text-muted mb-2">Email</label>
+            <label className="block text-sm text-[var(--color-gs-text-muted)] mb-2 font-medium">Email</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail size={18} className="text-gs-text-muted" />
+                <Mail size={18} className="text-[var(--color-gs-text-muted)]" />
               </div>
               <input 
                 type="email" 
@@ -152,7 +152,7 @@ export default function Login({ onNavigate, onLogin }) {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full bg-gs-bg border border-gs-border rounded-lg pl-10 p-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main" 
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white placeholder-white/30" 
                 placeholder="john@example.com" 
               />
             </div>
@@ -160,12 +160,12 @@ export default function Login({ onNavigate, onLogin }) {
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm text-gs-text-muted">Password</label>
-              <button type="button" onClick={() => setShowForgotPassword(true)} className="text-xs text-gs-cyan hover:underline">Forgot password?</button>
+              <label className="block text-sm text-[var(--color-gs-text-muted)] font-medium">Password</label>
+              <button type="button" onClick={() => setShowForgotPassword(true)} className="text-xs text-[#00f0ff] hover:underline">Forgot password?</button>
             </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock size={18} className="text-gs-text-muted" />
+                <Lock size={18} className="text-[var(--color-gs-text-muted)]" />
               </div>
               <input 
                 type="password" 
@@ -173,27 +173,27 @@ export default function Login({ onNavigate, onLogin }) {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="w-full bg-gs-bg border border-gs-border rounded-lg pl-10 p-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main" 
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white placeholder-white/30" 
                 placeholder="••••••••" 
               />
             </div>
           </div>
 
-          <button type="submit" disabled={isSubmitting} className="w-full py-3 mt-6 bg-[var(--color-gs-cyan)] text-[#0f172a] font-bold rounded-lg hover:bg-cyan-400 transition-all shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:shadow-[0_0_25px_rgba(0,212,255,0.5)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          <button type="submit" disabled={isSubmitting} className="w-full py-4 mt-8 bg-gradient-to-r from-[#00f0ff] to-[#a855f7] text-white font-bold rounded-xl hover:opacity-90 btn-scale transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
             {isSubmitting ? 'Signing In...' : 'Sign In'} {!isSubmitting && <ArrowRight size={18} />}
           </button>
         </form>
 
-        <div className="my-6 flex items-center">
-          <div className="flex-grow border-t border-gs-border"></div>
-          <span className="flex-shrink-0 mx-4 text-gs-text-muted text-sm">or</span>
-          <div className="flex-grow border-t border-gs-border"></div>
+        <div className="my-6 flex items-center opacity-50">
+          <div className="flex-grow border-t border-white/10"></div>
+          <span className="flex-shrink-0 mx-4 text-[var(--color-gs-text-muted)] text-sm">or</span>
+          <div className="flex-grow border-t border-white/10"></div>
         </div>
 
         <button 
           type="button"
           onClick={handleGoogleLogin} 
-          className="w-full py-3 bg-gs-bg border border-gs-border text-gs-text-main font-medium rounded-lg hover:bg-gs-border transition-colors flex items-center justify-center gap-3 mb-4"
+          className="w-full py-3 bg-white/5 border border-white/10 text-white font-medium rounded-xl hover:bg-white/10 hover:border-white/30 transition-colors flex items-center justify-center gap-3 mb-4 disabled:opacity-50"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -204,9 +204,9 @@ export default function Login({ onNavigate, onLogin }) {
           Continue with Google
         </button>
 
-        <p className="text-center text-gs-text-muted mt-6 text-sm">
+        <p className="text-center text-[var(--color-gs-text-muted)] mt-6 text-sm">
           Don't have an account?{' '}
-          <button onClick={() => onNavigate('signup')} className="text-gs-cyan hover:underline font-medium">
+          <button onClick={() => onNavigate('signup')} className="text-[#00f0ff] hover:underline font-medium hover:text-[#00f0ff]/80 transition-colors">
             Sign up
           </button>
         </p>
@@ -214,21 +214,21 @@ export default function Login({ onNavigate, onLogin }) {
 
       {/* Forgot Password Modal */}
       {showForgotPassword && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-gs-card border border-gs-border rounded-2xl p-8 max-w-sm w-full shadow-2xl animate-[slideIn_0.2s_ease-out]">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gs-text-main">Reset Password</h3>
-              <button onClick={() => setShowForgotPassword(false)} className="text-gs-text-muted hover:text-gs-text-main"><X size={20} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-page-load">
+          <div className="glass-card border border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
+            <div className="flex justify-between items-center mb-4 relative z-10">
+              <h3 className="text-xl font-bold font-heading text-white">Reset Password</h3>
+              <button onClick={() => setShowForgotPassword(false)} className="text-[var(--color-gs-text-muted)] hover:text-white transition-colors"><X size={20} /></button>
             </div>
-            <p className="text-gs-text-muted text-sm mb-5">Enter your email and we'll send a reset link.</p>
-            <div className="relative mb-4">
-              <Mail size={18} className="absolute left-3 top-3.5 text-gs-text-muted" />
+            <p className="text-[var(--color-gs-text-muted)] text-sm mb-5 relative z-10">Enter your email and we'll send a reset link.</p>
+            <div className="relative mb-6 z-10">
+              <Mail size={18} className="absolute left-3 top-3.5 text-[var(--color-gs-text-muted)]" />
               <input
                 type="email"
                 value={forgotEmail}
                 onChange={e => setForgotEmail(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleForgotPassword()}
-                className="w-full bg-gs-bg border border-gs-border rounded-lg pl-10 p-3 outline-none focus:border-gs-cyan transition-colors text-gs-text-main"
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 transition-colors text-white placeholder-white/30"
                 placeholder="your@email.com"
                 autoFocus
               />
@@ -236,7 +236,7 @@ export default function Login({ onNavigate, onLogin }) {
             <button
               onClick={handleForgotPassword}
               disabled={isSendingReset}
-              className="w-full py-3 bg-gs-cyan text-[#0f172a] font-bold rounded-lg hover:bg-cyan-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-gradient-to-r from-[#00f0ff] to-[#a855f7] text-white font-bold rounded-xl hover:opacity-90 btn-scale transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(0,240,255,0.3)] relative z-10"
             >
               {isSendingReset ? 'Sending...' : 'Send Reset Link'}
             </button>
