@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck, ExternalLink, X, GraduationCap,
-  Award, Sparkles, Clock, FileText, Eye,
+  Award, Sparkles, Clock, FileText, Eye, Zap, Trophy, Medal
 } from 'lucide-react';
+import supabase from '../lib/supabase';
 
 const FloatingParticles = () => {
   const [particles, setParticles] = useState([]);
@@ -309,28 +310,55 @@ function SkillBadge({ skill, onViewCert, index }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function PublicProfileView({ userProfile = MOCK_USER_PROFILE }) {
-  // ── State: URL of the certificate currently being viewed ─────────────────
   const [viewingCertificate, setViewingCertificate] = useState(null);
-  // Holds { url, skillName } so the lightbox header shows the right title
   const [viewingSkillName, setViewingSkillName]     = useState('');
+  const [eventHistory, setEventHistory]             = useState([]);
+  const [xpRank, setXpRank]                         = useState(null); // rank among all users
 
-  // ── Data normalisation — handles Supabase nested/flat responses ───────────
+  // ── Fetch real event results for this user ────────────────────────────────
+  useEffect(() => {
+    if (!userProfile?.id) return;
+
+    const fetchEventHistory = async () => {
+      const { data, error } = await supabase
+        .from('event_results')
+        .select('placement, xp_awarded, awarded_at, groups(name, type)')
+        .eq('user_id', userProfile.id)
+        .order('awarded_at', { ascending: false })
+        .limit(5);
+      if (!error && data) setEventHistory(data);
+    };
+
+    const fetchRank = async () => {
+      // Count how many users have more XP → rank = count + 1
+      if (!userProfile.xp && userProfile.xp !== 0) return;
+      const { count } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .gt('xp', userProfile.xp);
+      if (count !== null) setXpRank(count + 1);
+    };
+
+    fetchEventHistory();
+    fetchRank();
+  }, [userProfile?.id, userProfile?.xp]);
+
   const safeSkills = Array.isArray(userProfile?.skills)
     ? userProfile.skills.map(normaliseSkill).filter(Boolean)
     : [];
 
   const verifiedSkills = safeSkills.filter((s) => s.is_verified === true);
 
-  // ── Certificate viewer handler ────────────────────────────────────────────
   const handleViewCert = (url, skillName) => {
     setViewingCertificate(url);
     setViewingSkillName(skillName);
   };
 
-  // Adapter for SkillBadge — badge calls onViewCert(url), we need skillName too
   const handleBadgeClick = (skill) => {
     handleViewCert(skill.certificate_url, skill.name);
   };
+
+  const placementEmoji = (p) => p === '1st' ? '🥇' : p === '2nd' ? '🥈' : p === '3rd' ? '🥉' : '⚡';
 
   return (
     <div className="relative w-full bg-gs-bg overflow-hidden text-gs-text-main">
@@ -480,6 +508,70 @@ export default function PublicProfileView({ userProfile = MOCK_USER_PROFILE }) {
               </motion.p>
             )}
           </div>
+
+          {/* ── XP Rank + Event History ───────────────────────────── */}
+          {(userProfile?.xp > 0 || eventHistory.length > 0) && (
+            <>
+              <div className="mx-10 h-px bg-gradient-to-r from-transparent via-gs-border to-transparent" />
+              <div className="px-10 py-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gs-text-muted flex items-center gap-2 opacity-60">
+                    <Trophy size={14} className="text-[#f59e0b] drop-shadow-[0_0_5px_currentColor]" />
+                    Combat Record
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    {xpRank && (
+                      <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20">
+                        Campus Rank #{xpRank}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 text-sm font-black text-gs-primary">
+                      <Zap size={14} />
+                      {(userProfile?.xp || 0).toLocaleString()} XP
+                    </span>
+                  </div>
+                </div>
+
+                {eventHistory.length === 0 ? (
+                  <p className="text-center py-6 text-gs-text-muted text-sm opacity-50">No event results recorded yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {eventHistory.map((result, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.06 }}
+                        className="flex items-center gap-4 p-3 rounded-xl border border-gs-border bg-gs-bg/40 hover:border-gs-primary/30 transition-colors"
+                      >
+                        <span className="text-2xl w-8 text-center">
+                          {result.placement === '1st' ? '🥇' : result.placement === '2nd' ? '🥈' : result.placement === '3rd' ? '🥉' : '⚡'}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gs-text-main text-sm truncate">{result.groups?.name || 'Event'}</p>
+                          <p className="text-[10px] text-gs-text-muted uppercase tracking-wider">
+                            {result.groups?.type} · {new Date(result.awarded_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-black text-gs-primary text-sm">+{result.xp_awarded}</span>
+                          <span className="text-[9px] text-gs-text-muted ml-1 uppercase">XP</span>
+                        </div>
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-full ${
+                          result.placement === '1st' ? 'bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30'
+                          : result.placement === '2nd' ? 'bg-gs-text-muted/10 text-gs-text-muted border border-gs-border'
+                          : result.placement === '3rd' ? 'bg-[#cd7f32]/15 text-[#cd7f32] border border-[#cd7f32]/30'
+                          : 'bg-gs-primary/10 text-gs-primary border border-gs-primary/20'
+                        }`}>
+                          {result.placement}
+                        </span>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {/* ── Bottom accent bar ──────────────────────────────────── */}
           <div className="h-2 bg-gradient-to-r from-gs-primary via-gs-secondary to-gs-green opacity-80" />

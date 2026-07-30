@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, Lock, Unlock, Settings, LogOut, ShieldAlert, MessageSquare, Layout, Calendar as CalendarIcon, CornerDownRight, AlignLeft, AtSign, Send, Smile, Paperclip, Clock, MapPin, X, Image, File, BarChart3, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Users, Lock, Unlock, Settings, LogOut, ShieldAlert, MessageSquare, Layout, Calendar as CalendarIcon, CornerDownRight, AlignLeft, AtSign, Send, Smile, Paperclip, Clock, MapPin, X, Image, File, BarChart3, Plus, Trash2, Loader2, Zap, Medal } from 'lucide-react';
+import { XP_VALUES } from './Leaderboard';
 import { useAppContext } from '../context/AppContext';
 import { ONBOARDING_AVATARS } from '../data/mockData';
 import KanbanBoard from './KanbanBoard';
@@ -78,6 +79,12 @@ export default function GroupDetails() {
   const [showPollCreator, setShowPollCreator] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
+
+  // XP Award state (admin only)
+  const [showAwardXP, setShowAwardXP] = useState(false);
+  const [awardUserId, setAwardUserId] = useState('');
+  const [awardPlacement, setAwardPlacement] = useState('1st');
+  const [awardingXP, setAwardingXP] = useState(false);
 
   const [groupMessages, setGroupMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(true);
@@ -195,6 +202,50 @@ export default function GroupDetails() {
       </div>
     );
   }
+
+  // ── Handle XP Award ────────────────────────────────────────────────────────
+  const handleAwardXP = async () => {
+    if (!awardUserId || !awardPlacement) return;
+    setAwardingXP(true);
+
+    const xpAmount = XP_VALUES[awardPlacement] ?? 50;
+
+    // Check if already awarded for this event/user combo
+    const { data: existing } = await supabase
+      .from('event_results')
+      .select('id')
+      .eq('group_id', group.id)
+      .eq('user_id', awardUserId)
+      .maybeSingle();
+
+    if (existing) {
+      showToast('This member was already awarded XP for this event.', 'error');
+      setAwardingXP(false);
+      return;
+    }
+
+    // Insert event result — DB trigger handles XP update + activity log
+    const { error } = await supabase
+      .from('event_results')
+      .insert([{
+        group_id: group.id,
+        user_id: awardUserId,
+        placement: awardPlacement,
+        xp_awarded: xpAmount,
+        awarded_by: user.id,
+      }]);
+
+    setAwardingXP(false);
+
+    if (!error) {
+      showToast(`🏆 +${xpAmount} XP awarded for ${awardPlacement} place!`, 'success');
+      setAwardUserId('');
+      setAwardPlacement('1st');
+      setShowAwardXP(false);
+    } else {
+      showToast('Failed to award XP: ' + error.message, 'error');
+    }
+  };
 
   const isAdmin = group.adminId === user.id;
   const isMember = group.memberIds?.includes(user.id);
@@ -421,21 +472,101 @@ export default function GroupDetails() {
       )}
 
       {showSettings && isAdmin && (
-        <div className="glass-card p-6 rounded-2xl animate-[slideInUp_0.2s_ease-out]">
-          <h2 className="text-2xl font-bold font-heading text-white mb-4">Admin Settings</h2>
-          <div className="space-y-4">
+        <div className="glass-card p-6 rounded-2xl animate-[slideInUp_0.2s_ease-out] space-y-6">
+          <h2 className="text-2xl font-bold font-heading text-white mb-2">Admin Settings</h2>
+
+          {/* Privacy */}
+          <div>
+            <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Group Privacy</label>
+            <select value={group.privacy} onChange={handleChangePrivacy} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 text-white appearance-none max-w-md transition-colors">
+              <option value="public">Public (Anyone can see and request)</option>
+              <option value="private">Private (Hidden from browse, invite only)</option>
+              <option value="password">Password Protected (Visible, requires password)</option>
+            </select>
+          </div>
+          {group.privacy === 'password' && (
             <div>
-              <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1 font-medium">Group Privacy</label>
-              <select value={group.privacy} onChange={handleChangePrivacy} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none focus:border-[#00f0ff] focus:bg-white/10 text-white appearance-none max-w-md transition-colors">
-                <option value="public">Public (Anyone can see and request)</option>
-                <option value="private">Private (Hidden from browse, invite only)</option>
-                <option value="password">Password Protected (Visible, requires password)</option>
-              </select>
+              <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1">Set Password</label>
+              <input type="text" placeholder="Enter password (mock)" className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)] max-w-md" />
             </div>
-            {group.privacy === 'password' && (
-              <div>
-                <label className="block text-sm text-[var(--color-gs-text-muted)] mb-1">Set Password</label>
-                <input type="text" placeholder="Enter password (mock)" className="w-full bg-[var(--color-gs-bg)] border border-[var(--color-gs-border)] rounded-lg p-3 outline-none focus:border-[var(--color-gs-cyan)] text-[var(--color-gs-text-main)] max-w-md" />
+          )}
+
+          {/* ── Award XP Panel ──────────────────────────────────────── */}
+          <div className="border-t border-white/10 pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20">
+                  <Medal size={18} className="text-[#f59e0b]" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-lg">Award Event XP</h3>
+                  <p className="text-xs text-[var(--color-gs-text-muted)]">Points are permanent and update the Leaderboard instantly.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAwardXP(p => !p)}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  showAwardXP
+                    ? 'bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/40'
+                    : 'bg-white/5 border border-white/10 text-white hover:border-[#f59e0b]/40'
+                }`}
+              >
+                {showAwardXP ? 'Cancel' : '+ Award XP'}
+              </button>
+            </div>
+
+            {showAwardXP && (
+              <div className="bg-black/20 border border-[#f59e0b]/20 rounded-2xl p-5 space-y-4 animate-[slideInUp_0.15s_ease-out]">
+                {/* XP reference table */}
+                <div className="grid grid-cols-4 gap-2">
+                  {Object.entries(XP_VALUES).map(([place, xp]) => (
+                    <div key={place} className={`text-center p-2 rounded-xl border transition-all cursor-pointer ${
+                      awardPlacement === place
+                        ? 'border-[#f59e0b]/60 bg-[#f59e0b]/10 text-[#f59e0b]'
+                        : 'border-white/10 bg-white/5 text-[var(--color-gs-text-muted)] hover:border-[#f59e0b]/30'
+                    }`}
+                      onClick={() => setAwardPlacement(place)}
+                    >
+                      <div className="text-lg">
+                        {place === '1st' ? '🥇' : place === '2nd' ? '🥈' : place === '3rd' ? '🥉' : '⚡'}
+                      </div>
+                      <div className="text-[10px] font-black uppercase tracking-wider">{place}</div>
+                      <div className="text-sm font-black">+{xp} XP</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Member selector */}
+                <div>
+                  <label className="block text-xs text-[var(--color-gs-text-muted)] mb-2 font-bold uppercase tracking-wider">Select Member</label>
+                  <select
+                    value={awardUserId}
+                    onChange={e => setAwardUserId(e.target.value)}
+                    className="w-full bg-[var(--color-gs-bg)] border border-white/10 rounded-xl p-3 outline-none focus:border-[#f59e0b] text-white text-sm"
+                  >
+                    <option value="">-- Choose a member --</option>
+                    {realMembers.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.avatar} {m.name || 'Unknown'} {m.id === user.id ? '(You)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Confirm award */}
+                <button
+                  onClick={handleAwardXP}
+                  disabled={!awardUserId || awardingXP}
+                  className="w-full py-3 bg-gradient-to-r from-[#f59e0b] to-[#ef4444] text-white font-black rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                >
+                  {awardingXP
+                    ? <><Loader2 size={18} className="animate-spin" /> Awarding…</>
+                    : <><Zap size={18} /> Award {XP_VALUES[awardPlacement]} XP for {awardPlacement} Place</>
+                  }
+                </button>
+                <p className="text-[10px] text-[var(--color-gs-text-muted)] text-center opacity-60">
+                  ⚠️ XP awards are permanent. Each member can only be awarded once per event.
+                </p>
               </div>
             )}
           </div>
