@@ -9,54 +9,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Make html/body/root transparent so the background video animation shows through on every page -->
     <style>
       html, body, #root {
-        background: transparent !important;
+        background-color: #050810;
+        min-height: 100%;
+        margin: 0;
+        padding: 0;
       }
     </style>
   </head>
   <body>
-    <!-- Full-screen Background Video Animation -->
-    <div class="video-bg-container" aria-hidden="true">
-      <video
-        autoplay
-        loop
-        muted
-        playsinline
-        preload="auto"
-        class="video-bg-element"
-      >
-        <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260302_085844_21a8f4b3-dea5-4ede-be16-d53f6973bb14.mp4" type="video/mp4" />
-      </video>
-      <div class="video-bg-overlay"></div>
-    </div>
-
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-
-    <script>
-      (function () {
-        // Ensure background video plays automatically and recovers if autoplay is restricted
-        const video = document.querySelector('.video-bg-element');
-        if (video) {
-          video.muted = true;
-          const playPromise = video.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(function () {
-              const startPlay = function () {
-                video.play();
-                window.removeEventListener('click', startPlay);
-                window.removeEventListener('touchstart', startPlay);
-                window.removeEventListener('keydown', startPlay);
-              };
-              window.addEventListener('click', startPlay, { once: true });
-              window.addEventListener('touchstart', startPlay, { once: true });
-              window.addEventListener('keydown', startPlay, { once: true });
-            });
-          }
-        }
-      })();
-    </script>
   </body>
 </html>

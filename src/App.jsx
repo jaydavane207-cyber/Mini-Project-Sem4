@@ -13,6 +13,7 @@ import Home from './components/Home';
 import About from './components/About';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import BackgroundVideo from './components/BackgroundVideo';
 import { useAppContext } from './context/AppContext';
 
 // Pages
@@ -91,7 +92,9 @@ export default function GroupSyncApp() {
 
   return (
     <BrowserRouter>
-      <div className={`min-h-screen text-gs-text-main font-sans selection:bg-gs-cyan selection:text-gs-text-main theme-${theme}`}>
+      <div className={`relative min-h-screen text-gs-text-main font-sans selection:bg-gs-cyan selection:text-gs-text-main theme-${theme}`}>
+        <BackgroundVideo />
+        <div className="relative z-10">
         {toast && (
           <div className={`fixed bottom-4 right-4 z-50 animate-[slideIn_0.3s_ease-out] bg-gs-card p-4 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.5)] flex items-center gap-3 border ${
             toast.type === 'error' ? 'border-red-500/50' : 'border-gs-border'
@@ -160,6 +163,7 @@ export default function GroupSyncApp() {
           {/* 404 Page */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        </div>
       </div>
     </BrowserRouter>
   );
