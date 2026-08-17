@@ -1,24 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { ArrowRight, Users, Zap, Shield, Sparkles, Filter, Code } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 export default function Home({ onNavigate }) {
   const { theme } = useAppContext();
-  const [particles, setParticles] = useState([]);
-
-  useEffect(() => {
-    // Generate random particles matching the design spec
-    const p = Array.from({ length: 25 }).map((_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 4 + 2,
-      duration: Math.random() * 4 + 6,
-      delay: Math.random() * 5,
-      color: Math.random() > 0.5 ? '#00f0ff' : '#a855f7'
-    }));
-    setParticles(p);
-  }, []);
 
   const features = [
     {
@@ -74,26 +59,7 @@ export default function Home({ onNavigate }) {
   ];
 
   return (
-    <div className={`w-full flex justify-center pb-20 overflow-x-hidden min-h-screen transition-all duration-300 ${theme === 'light' ? 'bg-[var(--color-gs-bg)]' : 'bg-[radial-gradient(circle_at_center,#0d1528_0%,#050810_100%)]'}`}>
-      {/* Particles Overlay */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        {particles.map((p) => (
-          <div
-            key={p.id}
-            className="absolute rounded-full opacity-50 shadow-[0_0_10px_currentColor]"
-            style={{
-              left: `${p.x}%`,
-              top: `${p.y}%`,
-              width: `${p.size}px`,
-              height: `${p.size}px`,
-              backgroundColor: p.color,
-              color: p.color,
-              animation: `float-particle ${p.duration}s ease-in-out ${p.delay}s infinite alternate`
-            }}
-          />
-        ))}
-      </div>
-
+    <div className="w-full flex justify-center pb-20 overflow-x-hidden min-h-screen bg-transparent">
       <div className="max-w-7xl w-full px-4 sm:px-6 lg:px-8 space-y-32 z-10">
         
         {/* --- Hero Section --- */}

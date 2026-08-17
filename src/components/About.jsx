@@ -38,7 +38,7 @@ export default function About() {
   ];
 
   return (
-    <div className="w-full flex justify-center pb-20 pt-32 px-4 sm:px-6 lg:px-8 bg-[var(--color-gs-bg)]">
+    <div className="w-full flex justify-center pb-20 pt-32 px-4 sm:px-6 lg:px-8 bg-transparent">
       <div className="max-w-4xl w-full">
         
         {/* Header */}
